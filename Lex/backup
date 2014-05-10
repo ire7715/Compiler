@@ -1,0 +1,14 @@
+\".*\" {
+	/* Print each segment separately instead of the whole scanned pattern. Because applying input() at EOF causes yytext lose. */ 
+	fprintf(stdout, "<string: %s", yytext);
+	yyleng=0;
+	char c;
+	while((char)0x22==(c=input())){
+		yymore();
+		fprintf(stdout, "%s", yytext);
+	}
+	if(c>=' ' && c<='~'){
+		unput(c);
+	} yytext[yyleng]='\0';
+	fprintf(stdout, "> @ line %ld\r\n", lineNo);
+}

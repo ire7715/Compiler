@@ -1,0 +1,43 @@
+, : :: ; ( ) [ ] { } %
++ - * / ** //
+< .LT. <= .LE. >= .GE. > .GT. == .EQ. /= .NE.
+.AND. .OR. .NOT. .EQV. .NEQV.
+call
+case
+character
+close
+continue
+cycle
+data dimension do else end exit function goto if integer logical procedure parameter print println pointer program real recursive return select stop subroutine type
+.AND. .OR. .NOT. .EQV. .NEQV.
+temp1 temp2 temp3 a1 a2 a3 x00 x11 x22
+12345 22345 32345
++1.2 -5.4 +1 -2
+1.5e-2 2.5E2
+.TRUE.
+true
+.FALSE.
+false
+"Hello World"
+"Hello World"
+
+"Hello World\"12345"
+"Hello World""12345"
+"Hello World""1234\"2234"
+C this is comment 123 321
+program ! integer i = 10;
+/* this is a comment ! line with some * / /* and C 
+delimiters */
+C this is a comment ! line */ /* with /* delimiters */ before the 
+end
+C test1 ! test2
+/*
+* * * * * 
+* / / / / 
+* * / * /
+* / * / *
+* Compute sum = 1 + 2 + ... + n;
+*/
+123
+integer i=i+1;
+
