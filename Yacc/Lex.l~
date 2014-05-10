@@ -13,8 +13,12 @@
 long int lineNo = 0;
 char outputBuff[OUT_SIZE], strBuff[MAX_STR_SIZE];	// outputBuff stores token tags in current line.
 
-void printToken(char *text){
-	fprintf(stdout, "%s", text);
+void printTokenOrd(char *text){
+	fprintf(stdout, "<%s>\r\n", text);
+}
+
+void printToken(char *text, char *tokenType){
+		fprintf(stdout, "<\033[38;5;46m%s\033[0;0m: \033[38;5;204m%s\033[0;0m> @ line %ld\r\n", tokenType, text, lineNo);
 }
 
 void newLine(){	// Gives a new line
@@ -23,8 +27,8 @@ void newLine(){	// Gives a new line
 	lineNo++;
 	//-- fprintf(stdout, "\r\n%s\033[38;5;190m%ld\033[0;0m: ", outputBuff, lineNo);
 	//-- outputBuff[0] = '\0';
-	fprintf(stdout, "%s\r\n", outputBuff);
-	fflush(stdout);
+	//-- fprintf(stdout, "%s\r\n", outputBuff);
+	//-- fflush(stdout);
 }
 
 %}
@@ -38,91 +42,92 @@ integer (\+|-)?[0-9]+
 %%
 
 	/* delimiter begin */ 
-","		{ printToken(yytext); return DEL_COMMA;}
-":"		{ printToken(yytext); return DEL_COLON;}
-"::"	{ printToken(yytext); return DEL_DUAL_COLON;}
-";"		{ printToken(yytext); return DEL_SEMICOLON;}
-"("		{ printToken(yytext); return DEL_L_PARENTHESIS;}
-")"		{ printToken(yytext); return DEL_R_PARENTHESIS;}
-"["		{ printToken(yytext); return DEL_L_SQUARE_BRACKET;}
-"]"		{ printToken(yytext); return DEL_R_SQUARE_BRACKET;}
-"{"		{ printToken(yytext); return DEL_L_BRACKET;}
-"}"		{ printToken(yytext); return DEL_R_BRACKET;}
-"%"		{ printToken(yytext); return DEL_COMPONENT_REF;}
+","		{ printToken(yytext, "delimiter"); return DEL_COMMA;}
+":"		{ printToken(yytext, "delimiter"); return DEL_COLON;}
+"::"	{ printToken(yytext, "delimiter"); return DEL_DUAL_COLON;}
+";"		{ printToken(yytext, "delimiter"); return DEL_SEMICOLON;}
+"("		{ printToken(yytext, "delimiter"); return DEL_L_PARENTHESIS;}
+")"		{ printToken(yytext, "delimiter"); return DEL_R_PARENTHESIS;}
+"["		{ printToken(yytext, "delimiter"); return DEL_L_SQUARE_BRACKET;}
+"]"		{ printToken(yytext, "delimiter"); return DEL_R_SQUARE_BRACKET;}
+"{"		{ printToken(yytext, "delimiter"); return DEL_L_BRACKET;}
+"}"		{ printToken(yytext, "delimiter"); return DEL_R_BRACKET;}
+"%"		{ printToken(yytext, "delimiter"); return DEL_COMPONENT_REF;}
 	/* delemiter end */
 
 	/* operators begin */
 	/*	Arithmatic */
-"+"		{ printToken(yytext); return OP_ADD;}
-"-"		{ printToken(yytext); return OP_SUB;}
-"*"		{ printToken(yytext); return OP_MULTIPLY;}
-"/"		{ printToken(yytext); return OP_DIVIDE;}
-"**"	{ printToken(yytext); return OP_EXPONENT;}
-"//"	{ printToken(yytext); return OP_CONCAT;}
+"+"		{ printToken(yytext, "operator"); return OP_ADD;}
+"-"		{ printToken(yytext, "operator"); return OP_SUB;}
+"*"		{ printToken(yytext, "operator"); return OP_MULTIPLY;}
+"/"		{ printToken(yytext, "operator"); return OP_DIVIDE;}
+"**"	{ printToken(yytext, "operator"); return OP_EXPONENT;}
+"//"	{ printToken(yytext, "operator"); return OP_CONCAT;}
 
 	/*	Relation */
-"<"|".LT."	{ printToken(yytext); return OP_LT;}
-"<="|".LE."	{ printToken(yytext); return OP_LE;}
-">"|".GT."	{ printToken(yytext); return OP_GT;}
-">="|".GE."	{ printToken(yytext); return OP_GE;}
-"=="|".EQ."	{ printToken(yytext); return OP_EQ;}
-"/="|".NE."	{ printToken(yytext); return OP_NE;}
+"<"|".LT."	{ printToken(yytext, "operator"); return OP_LT;}
+"<="|".LE."	{ printToken(yytext, "operator"); return OP_LE;}
+">"|".GT."	{ printToken(yytext, "operator"); return OP_GT;}
+">="|".GE."	{ printToken(yytext, "operator"); return OP_GE;}
+"=="|".EQ."	{ printToken(yytext, "operator"); return OP_EQ;}
+"/="|".NE."	{ printToken(yytext, "operator"); return OP_NE;}
 
 	/*	Logic */
-".AND."		{ printToken(yytext); return OP_AND;}
-".OR."		{ printToken(yytext); return OP_OR;}
-".NOT."		{ printToken(yytext); return OP_NOT;}
-".EQV."		{ printToken(yytext); return OP_EQV;}
-".NEQV."	{ printToken(yytext); return OP_NEQV;}
+".AND."		{ printToken(yytext, "operator"); return OP_AND;}
+".OR."		{ printToken(yytext, "operator"); return OP_OR;}
+".NOT."		{ printToken(yytext, "operator"); return OP_NOT;}
+".EQV."		{ printToken(yytext, "operator"); return OP_EQV;}
+".NEQV."	{ printToken(yytext, "operator"); return OP_NEQV;}
 
 	/*	Assign */
-"="		{ printToken(yytext); return OP_ASSIGN;}
-"=>"	{ printToken(yytext); return OP_POINTER_ASSIGN;};
+"="		{ printToken(yytext, "operator"); return OP_ASSIGN;}
+"=>"	{ printToken(yytext, "operator"); return OP_POINTER_ASSIGN;};
 	/* operators end */
 
 	/* keywords begin */
-"call"			{ printToken(yytext); return KW_CALL;}
-"case"			{ printToken(yytext); return KW_CASE;}
-"character"		{ printToken(yytext); return KW_CHAR;}
-"close"			{ printToken(yytext); return KW_CLOSE;}
-"continue"		{ printToken(yytext); return KW_CONT;}
-"cycle"			{ printToken(yytext); return KW_CYCLE;}
-"data"			{ printToken(yytext); return KW_DATA;}
-"dimension"		{ printToken(yytext); return KW_DIM;}
-"do"			{ printToken(yytext); return KW_DO;}
-"else"			{ printToken(yytext); return KW_ELSE;}
-"end"			{ printToken(yytext); return KW_END;}
-"exit"			{ printToken(yytext); return KW_EXIT;}
-"function"		{ printToken(yytext); return KW_FUNC;}
-"goto"			{ printToken(yytext); return KW_GOTO;}
-"if"			{ printToken(yytext); return KW_IF;}
-"integer"		{ printToken(yytext); return KW_INT;}
-"interface"		{ printToken(yytext); return KW_INTERFACE;}
-"logical"		{ printToken(yytext); return KW_LOGIC;}
-"procedure"		{ printToken(yytext); return KW_PROCEDURE;}
-"parameter"		{ printToken(yytext); return KW_PARAMETER;}
-"print"			{ printToken(yytext); return KW_PRINT;}
-"println"		{ printToken(yytext); return KW_PRINTLN;}
-"pointer"		{ printToken(yytext); return KW_POINTER;}
-"program"		{ printToken(yytext); return KW_PROGRAM;}
-"real"			{ printToken(yytext); return KW_REAL;}
-"recursive"		{ printToken(yytext); return KW_RECURSIVE;}
-"return"		{ printToken(yytext); return KW_RETURN;}
-"select"		{ printToken(yytext); return KW_SELECT;}
-"stop"			{ printToken(yytext); return KW_STOP;}
-"subroutine"	{ printToken(yytext); return KW_SUB;}
-"type"			{ printToken(yytext); return KW_TYPE;}
+"call"			{ printToken(yytext, "keyword"); return KW_CALL;}
+"case"			{ printToken(yytext, "keyword"); return KW_CASE;}
+"character"		{ printToken(yytext, "keyword"); return KW_CHAR;}
+"close"			{ printToken(yytext, "keyword"); return KW_CLOSE;}
+"common"		{ printToken(yytext, "keyword"); return KW_COMMON;}
+"continue"		{ printToken(yytext, "keyword"); return KW_CONT;}
+"cycle"			{ printToken(yytext, "keyword"); return KW_CYCLE;}
+"data"			{ printToken(yytext, "keyword"); return KW_DATA;}
+"dimension"		{ printToken(yytext, "keyword"); return KW_DIM;}
+"do"			{ printToken(yytext, "keyword"); return KW_DO;}
+"else"			{ printToken(yytext, "keyword"); return KW_ELSE;}
+"end"			{ printToken(yytext, "keyword"); return KW_END;}
+"exit"			{ printToken(yytext, "keyword"); return KW_EXIT;}
+"function"		{ printToken(yytext, "keyword"); return KW_FUNC;}
+"goto"			{ printToken(yytext, "keyword"); return KW_GOTO;}
+"if"			{ printToken(yytext, "keyword"); return KW_IF;}
+"integer"		{ printToken(yytext, "keyword"); return KW_INT;}
+"interface"		{ printToken(yytext, "keyword"); return KW_INTERFACE;}
+"logical"		{ printToken(yytext, "keyword"); return KW_LOGIC;}
+"procedure"		{ printToken(yytext, "keyword"); return KW_PROCEDURE;}
+"parameter"		{ printToken(yytext, "keyword"); return KW_PARAMETER;}
+"print"			{ printToken(yytext, "keyword"); return KW_PRINT;}
+"println"		{ printToken(yytext, "keyword"); return KW_PRINTLN;}
+"pointer"		{ printToken(yytext, "keyword"); return KW_POINTER;}
+"program"		{ printToken(yytext, "keyword"); return KW_PROGRAM;}
+"read"			{ printToken(yytext, "keyword"); return KW_PROGRAM;}
+"real"			{ printToken(yytext, "keyword"); return KW_REAL;}
+"recursive"		{ printToken(yytext, "keyword"); return KW_RECURSIVE;}
+"return"		{ printToken(yytext, "keyword"); return KW_RETURN;}
+"select"		{ printToken(yytext, "keyword"); return KW_SELECT;}
+"stop"			{ printToken(yytext, "keyword"); return KW_STOP;}
+"subroutine"	{ printToken(yytext, "keyword"); return KW_SUB;}
+"type"			{ printToken(yytext, "keyword"); return KW_TYPE;}
 	/* keywords end */
 
 	/* booleans begin */
-".TRUE."	{ printToken(yytext); yylval.Zval = 1; return CONST_BOOL;}
-".FALSE."	{ printToken(yytext); yylval.Zval = 0; return CONST_BOOL;}
+".TRUE."	{ printToken(yytext, "boolean"); yylval.Zval = 1; return CONST_BOOL;}
+".FALSE."	{ printToken(yytext, "boolean"); yylval.Zval = 0; return CONST_BOOL;}
 	/* booleans end */
 
 	/* integers begin */
 {integer}	{
-				printToken(yytext);
-				int temp;
+				printToken(yytext, "integer");
 				sscanf(yytext, "%d", &(yylval.Zval));
 				return CONST_INT;
 			}
@@ -130,17 +135,13 @@ integer (\+|-)?[0-9]+
 
 	/* real numbers */
 {realNumber}E{integer}	{
-							printToken(yytext);
-							double temp;
+							printToken(yytext, "real");
 							sscanf(yytext, "%lf", &(yylval.Rval));
-							YYLVAL(temp);
 							return CONST_REAL;
 						}
 ((\+|-)?[0-9]*\.[0-9]+)	{
-							printToken(yytext);
-							double temp; 
+							printToken(yytext, "real");
 							sscanf(yytext, "%lf", &(yylval.Rval));
-							YYLVAL(temp);
 							return CONST_REAL;
 						}
 	/* real numbers */
@@ -154,7 +155,7 @@ integer (\+|-)?[0-9]+
 <STRING>\" {
 		// Met one double-quote implies string ends. Complete the string tag and back to initial state.
 		BEGIN(INITIAL);
-		printToken(strBuff);
+		printToken(strBuff, "string");
 		memcpy(yylval.Str, strBuff, strlen(strBuff)+1);
 		return CONST_STRING;
 	}
@@ -186,8 +187,8 @@ integer (\+|-)?[0-9]+
 	/* strings end */
 
 	/* comments begin */
-^(C|"*")" ".*$ { fprintf(stdout, "\033[38;5;247m%s\033[0;0m", yytext); }
-"!".*$ { fprintf(stdout, "\033[38;5;247m%s\033[0;0m", yytext); }
+^(C|"*")" ".*$ { fprintf(stdout, "\033[38;5;247m%s\033[0;0m\r\n", yytext); }
+"!".*$ { fprintf(stdout, "\033[38;5;247m%s\033[0;0m\r\n", yytext); }
 "/*" {
 		fprintf(stdout, "\033[38;5;247m%s", yytext);
 		BEGIN(COMMENTS);
@@ -206,7 +207,7 @@ integer (\+|-)?[0-9]+
 
 	/* identifiers begin */
 [A-Za-z][0-9A-Za-z]* { 
-		printToken(yytext);
+		printToken(yytext, "identifier");
 		if(lookup(current, yytext) == NULL)
 			insert(current, yytext);
 		memcpy(yylval.Str, yytext, strlen(yytext)+1);
@@ -214,8 +215,8 @@ integer (\+|-)?[0-9]+
 	}
 	/* identifiers end */
 
-" "|"\t" { fprintf(stdout, "%s", yytext); }
-"\n" { newLine(); return C_LF;}
+" "|"\t" { /*fprintf(stdout, "%s", yytext);*/ }
+"\n" { printToken(yytext, "C_LF"); newLine(); return C_LF;}
 <<EOF>> { return C_EOF;}
 %%
 

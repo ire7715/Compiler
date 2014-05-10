@@ -54,17 +54,31 @@ element *insert(symbolTable *st, char *s){	// Insert a variable name into symbol
 }
 
 symbolTable *dump(symbolTable *st){	// Visit all slots and traverse all buckets in the chain, and print all data contained.
-	int i;
-	bucket *cur;
 	fprintf(stdout, "\033[38;5;45m*** Symbol table ***\033[0;0m\r\n");	// \033 is for the console color. For more information please refer to https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+	dump_real(st, 1);
+	fprintf(stdout, "\033[38;5;45m*** End symbol table ***\033[0;0m\r\n");
+	return st;
+}
+
+void dump_real(symbolTable *st, int depth){	// Visit all slots and traverse all buckets in the chain, and print all data contained.
+	int i;//fprintf(stdout, "%d\r\n", depth);
+	char padding[256];
+	bucket *cur;
+	for(i = 0; i<depth; i++)
+		padding[i] = '\t';
+	padding[i] = '\0';
 	for(i = 0; i< TABLE_SIZE ; i++){
 		cur = st->table[i].link;
 		while(cur != NULL){
-			printElement(cur->inner);
+			if(cur->inner.subRegion != NULL)
+				dump_real(st, depth+1);
+			else{
+				fprintf(stdout, "%s", padding);
+				printElement(cur->inner);
+			}
 			cur = cur->link;
 		}
 	}
-	return st;
 }
 
 symbolTable *release(symbolTable *st){	// This function is for releasing memories of symbol table.

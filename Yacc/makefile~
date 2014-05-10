@@ -1,4 +1,4 @@
-scanner: Yacc.o lex.yy.o SymbolTable.o
+scanner: SymbolTable.o Yacc.o lex.yy.o
 	gcc -o scanner lex.yy.o Yacc.o SymbolTable.o -ll
 
 lex.yy.o: Lex.l
@@ -7,7 +7,7 @@ lex.yy.o: Lex.l
 
 Yacc.o: Yacc.y
 	bison -d Yacc.y
-	gcc -c Yacc.tab.c -o Yacc.o
+	gcc -c -std=c99 Yacc.tab.c -o Yacc.o
 
 SymbolTable.o: SymbolTable.c SymbolTable.h
 	gcc -c -o SymbolTable.o SymbolTable.c

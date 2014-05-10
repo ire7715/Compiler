@@ -7,7 +7,7 @@ lex.yy.o: Lex.l
 
 Yacc.o: Yacc.y
 	bison -d Yacc.y
-	gcc -c Yacc.tab.c -o Yacc.o
+	gcc -c -std=c99 -w Yacc.tab.c -o Yacc.o
 
 SymbolTable.o: SymbolTable.c SymbolTable.h
 	gcc -c -o SymbolTable.o SymbolTable.c

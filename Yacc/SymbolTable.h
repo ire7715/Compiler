@@ -23,18 +23,20 @@ typedef struct _SYMBOLTABLE{
 
 extern symbolTable *global, *current;
 
-void printElement(element e);
+void printElement(element);
 
-symbolTable *create(symbolTable *parent);
+symbolTable *create(symbolTable *);
 
-unsigned int hash(char *str);
+unsigned int hash(char *);
 
-element *lookup(symbolTable *st, char *s);
+element *lookup(symbolTable *, char *);
 
-element *insert(symbolTable *st, char *s);
+element *insert(symbolTable *, char *);
 
-symbolTable *dump(symbolTable *st);
+symbolTable *dump(symbolTable *);
 
-symbolTable *release(symbolTable *st);
+void dump_real(symbolTable *, int);
+
+symbolTable *release(symbolTable *);
 
 #endif

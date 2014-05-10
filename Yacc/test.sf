@@ -1,14 +1,51 @@
 program example
+
+
 	integer a, b, c ! integers
+
+
 	real :: d ! real
+
+
 	integer, dimension(10) :: e ! array with 10 integers
+
+
 	integer, dimension(10), pointer :: p ! pointer to 10-integer array
+
+
 	common /d/
+
+
 	interface ! interface for forward declarations
+
+
+
+
+
+
+
+
 		subroutine multiply(x, y)
-			multiply = x * y
+
+
+
+			x = -x
+
+
+			multiply = x * (y + 1)
+
+
+
 		end subroutine multiply
+
+
 	end interface
-	1 + 1
+
+
+	c = 1 + 1
+
+
 	1.0 + 4e7
+	!println "hello "" world"
 end program example
+

@@ -92,20 +92,22 @@
      KW_PRINTLN = 310,
      KW_POINTER = 311,
      KW_PROGRAM = 312,
-     KW_REAL = 313,
-     KW_RECURSIVE = 314,
-     KW_RETURN = 315,
-     KW_SELECT = 316,
-     KW_STOP = 317,
-     KW_SUB = 318,
-     KW_TYPE = 319,
-     CONST_BOOL = 320,
-     CONST_INT = 321,
-     CONST_REAL = 322,
-     CONST_STRING = 323,
-     IDENTIFIER = 324,
-     C_EOF = 325,
-     C_LF = 326
+     KW_READ = 313,
+     KW_REAL = 314,
+     KW_RECURSIVE = 315,
+     KW_RETURN = 316,
+     KW_SELECT = 317,
+     KW_STOP = 318,
+     KW_SUB = 319,
+     KW_TYPE = 320,
+     CONST_BOOL = 321,
+     CONST_INT = 322,
+     CONST_REAL = 323,
+     CONST_STRING = 324,
+     IDENTIFIER = 325,
+     C_EOF = 326,
+     C_LF = 327,
+     UMINUS = 328
    };
 #endif
 
@@ -116,7 +118,7 @@ typedef union YYSTYPE
 {
 
 /* Line 2068 of yacc.c  */
-#line 35 "Yacc.y"
+#line 61 "Yacc.y"
 
 	int Zval;
 	double Rval;
@@ -125,7 +127,7 @@ typedef union YYSTYPE
 
 
 /* Line 2068 of yacc.c  */
-#line 129 "Yacc.tab.h"
+#line 131 "Yacc.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
