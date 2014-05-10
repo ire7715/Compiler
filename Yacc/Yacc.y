@@ -108,9 +108,7 @@ recursive_p	:	KW_RECURSIVE
 stmts	:	 stmt stmts 
 		| ;
 
-stmt	:	expr_p C_LF;
-
-expr_p	:	
+stmt	:	expr C_LF;
 
 expr	:	computable operation computable { /*fprintf(stdout, "%d + %d", $1, $3);*/}
 		|	OP_SUB computable %prec OP_MULTIPLY
