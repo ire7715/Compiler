@@ -13,4 +13,4 @@ SymbolTable.o: SymbolTable.c SymbolTable.h
 	gcc -c -o SymbolTable.o SymbolTable.c
 
 clean:
-	rm -f *.o lex.yy.c
+	rm -f *.o lex.yy.c Yacc.tab.c Yacc.tab.h scanner

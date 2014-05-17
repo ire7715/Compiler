@@ -118,17 +118,20 @@ integer (\+|-)?[0-9]+
 "stop"			{ printToken(yytext, "keyword"); return KW_STOP;}
 "subroutine"	{ printToken(yytext, "keyword"); return KW_SUB;}
 "type"			{ printToken(yytext, "keyword"); return KW_TYPE;}
+"then"			{ printToken(yytext, "keyword"); return KW_THEN;}
+
 	/* keywords end */
 
 	/* booleans begin */
-".TRUE."	{ printToken(yytext, "boolean"); yylval.Zval = 1; return CONST_BOOL;}
-".FALSE."	{ printToken(yytext, "boolean"); yylval.Zval = 0; return CONST_BOOL;}
+".TRUE."	{ printToken(yytext, "boolean"); yylval.const.type = 4; yylval.const.data.Zval = 1; return CONST_BOOL;}
+".FALSE."	{ printToken(yytext, "boolean"); yylval.const.type = 4; yylval.const.data.Zval = 0; return CONST_BOOL;}
 	/* booleans end */
 
 	/* integers begin */
 {integer}	{
 				printToken(yytext, "integer");
-				sscanf(yytext, "%d", &(yylval.Zval));
+				yylval.const.type = 1;
+				sscanf(yytext, "%d", &(yylval.const.data.Zval));
 				return CONST_INT;
 			}
 	/* integers end */
@@ -136,12 +139,14 @@ integer (\+|-)?[0-9]+
 	/* real numbers */
 {realNumber}E{integer}	{
 							printToken(yytext, "real");
-							sscanf(yytext, "%lf", &(yylval.Rval));
+							yylval.const.type = 2;
+							sscanf(yytext, "%lf", &(yylval.const.data.Rval));
 							return CONST_REAL;
 						}
 ((\+|-)?[0-9]*\.[0-9]+)	{
 							printToken(yytext, "real");
-							sscanf(yytext, "%lf", &(yylval.Rval));
+							yylval.const.type = 2;
+							sscanf(yytext, "%lf", &(yylval.const.data.Rval));
 							return CONST_REAL;
 						}
 	/* real numbers */
@@ -156,7 +161,8 @@ integer (\+|-)?[0-9]+
 		// Met one double-quote implies string ends. Complete the string tag and back to initial state.
 		BEGIN(INITIAL);
 		printToken(strBuff, "string");
-		memcpy(yylval.Str, strBuff, strlen(strBuff)+1);
+		yylval.const.type = 3;
+		memcpy(yylval.const.data.Str, strBuff, strlen(strBuff)+1);
 		return CONST_STRING;
 	}
 <STRING>\\\" {
@@ -208,15 +214,14 @@ integer (\+|-)?[0-9]+
 	/* identifiers begin */
 [A-Za-z][0-9A-Za-z]* { 
 		printToken(yytext, "identifier");
-		if(lookup(current, yytext) == NULL)
-			insert(current, yytext);
-		memcpy(yylval.Str, yytext, strlen(yytext)+1);
+		if((yylval.node.ep = lookup(current, yytext)) == NULL)
+			yylval.node.ep = insert(current, yytext);
 		return IDENTIFIER;
 	}
 	/* identifiers end */
 
 " "|"\t" { /*fprintf(stdout, "%s", yytext);*/ }
-"\n" { printToken(yytext, "C_LF"); newLine(); return C_LF;}
+"\n" { printToken("C_LF", "LineBreak"); newLine(); return C_LF;}
 <<EOF>> { return C_EOF;}
 %%
 

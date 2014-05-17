@@ -30,6 +30,18 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
+/* "%code requires" blocks.  */
+
+/* Line 2068 of yacc.c  */
+#line 41 "Yacc.y"
+
+	#include "SymbolTable.h"
+	typedef struct _NODE *nodeP;
+
+
+
+/* Line 2068 of yacc.c  */
+#line 45 "Yacc.tab.h"
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -100,14 +112,15 @@
      KW_STOP = 318,
      KW_SUB = 319,
      KW_TYPE = 320,
-     CONST_BOOL = 321,
-     CONST_INT = 322,
-     CONST_REAL = 323,
-     CONST_STRING = 324,
-     IDENTIFIER = 325,
-     C_EOF = 326,
-     C_LF = 327,
-     UMINUS = 328
+     KW_THEN = 321,
+     CONST_BOOL = 322,
+     CONST_INT = 323,
+     CONST_REAL = 324,
+     CONST_STRING = 325,
+     IDENTIFIER = 326,
+     C_EOF = 327,
+     C_LF = 328,
+     UMINUS = 329
    };
 #endif
 
@@ -118,16 +131,25 @@ typedef union YYSTYPE
 {
 
 /* Line 2068 of yacc.c  */
-#line 61 "Yacc.y"
+#line 66 "Yacc.y"
 
-	int Zval;
-	double Rval;
-	char Str[2048];
+	struct _CONST{
+		int type;	// 0x01 for int, 0x02 for double, 0x03 for string, 0x04 for boolean.
+		union _DATA{
+			int Zval;
+			double Rval;
+			char Str[2048];
+		} data;
+	} constant;
+	struct _NODE{
+		element *ep;
+		nodeP next;
+	} node;
 
 
 
 /* Line 2068 of yacc.c  */
-#line 131 "Yacc.tab.h"
+#line 153 "Yacc.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

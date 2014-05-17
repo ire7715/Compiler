@@ -14,16 +14,24 @@ program example
 
 
 	common /d/
+
+
 	interface ! interface for forward declarations
+
+
+
+
+
+
+
+
 		subroutine multiply(x, y)
 
 
 
-			x = -x
+			real x, y
 
-
-			multiply = x * (y + 1)
-
+			multiply = x + y
 
 
 		end subroutine multiply
@@ -39,3 +47,16 @@ program example
 	!println "hello "" world"
 end program example
 
+
+subroutine multiply(x, y)
+
+
+
+			real x, y
+
+			
+			x = -x
+			
+			multiply = x * y
+
+		end subroutine multiply

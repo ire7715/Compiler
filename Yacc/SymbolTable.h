@@ -8,6 +8,7 @@ typedef struct _SYMBOLTABLE *symbolTableP;
 
 typedef struct _ELEMENT{
 	char variable[ID_LEN];
+	int type;
 	symbolTableP subRegion;
 } element;	// A smallest unit in hash table, presents an element.
 

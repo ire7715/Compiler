@@ -29,10 +29,7 @@ program example
 
 
 
-			x = -x
-
-
-			multiply = x * (y + 1)
+			real x, y
 
 
 
@@ -49,3 +46,16 @@ program example
 	!println "hello "" world"
 end program example
 
+
+subroutine multiply(x, y)
+
+
+
+			real x, y
+
+			
+			x = -x
+			
+			multiply = x * y
+
+		end subroutine multiply
