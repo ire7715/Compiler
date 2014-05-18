@@ -123,15 +123,15 @@ integer (\+|-)?[0-9]+
 	/* keywords end */
 
 	/* booleans begin */
-".TRUE."	{ printToken(yytext, "boolean"); yylval.const.type = 4; yylval.const.data.Zval = 1; return CONST_BOOL;}
-".FALSE."	{ printToken(yytext, "boolean"); yylval.const.type = 4; yylval.const.data.Zval = 0; return CONST_BOOL;}
+".TRUE."	{ printToken(yytext, "boolean"); yylval.constant.type = 4; yylval.constant.data.Zval = 1; return CONST_BOOL;}
+".FALSE."	{ printToken(yytext, "boolean"); yylval.constant.type = 4; yylval.constant.data.Zval = 0; return CONST_BOOL;}
 	/* booleans end */
 
 	/* integers begin */
 {integer}	{
 				printToken(yytext, "integer");
-				yylval.const.type = 1;
-				sscanf(yytext, "%d", &(yylval.const.data.Zval));
+				yylval.constant.type = 1;
+				sscanf(yytext, "%d", &(yylval.constant.data.Zval));
 				return CONST_INT;
 			}
 	/* integers end */
@@ -139,14 +139,14 @@ integer (\+|-)?[0-9]+
 	/* real numbers */
 {realNumber}E{integer}	{
 							printToken(yytext, "real");
-							yylval.const.type = 2;
-							sscanf(yytext, "%lf", &(yylval.const.data.Rval));
+							yylval.constant.type = 2;
+							sscanf(yytext, "%lf", &(yylval.constant.data.Rval));
 							return CONST_REAL;
 						}
 ((\+|-)?[0-9]*\.[0-9]+)	{
 							printToken(yytext, "real");
-							yylval.const.type = 2;
-							sscanf(yytext, "%lf", &(yylval.const.data.Rval));
+							yylval.constant.type = 2;
+							sscanf(yytext, "%lf", &(yylval.constant.data.Rval));
 							return CONST_REAL;
 						}
 	/* real numbers */
@@ -161,8 +161,8 @@ integer (\+|-)?[0-9]+
 		// Met one double-quote implies string ends. Complete the string tag and back to initial state.
 		BEGIN(INITIAL);
 		printToken(strBuff, "string");
-		yylval.const.type = 3;
-		memcpy(yylval.const.data.Str, strBuff, strlen(strBuff)+1);
+		yylval.constant.type = 3;
+		memcpy(yylval.constant.data.Str, strBuff, strlen(strBuff)+1);
 		return CONST_STRING;
 	}
 <STRING>\\\" {
@@ -214,8 +214,8 @@ integer (\+|-)?[0-9]+
 	/* identifiers begin */
 [A-Za-z][0-9A-Za-z]* { 
 		printToken(yytext, "identifier");
-		if((yylval.node.ep = lookup(current, yytext)) == NULL)
-			yylval.node.ep = insert(current, yytext);
+		yylval.constant.type = 3;
+		memcpy(yylval.constant.data.Str, strBuff, strlen(strBuff)+1);
 		return IDENTIFIER;
 	}
 	/* identifiers end */

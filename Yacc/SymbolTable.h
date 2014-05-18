@@ -34,6 +34,10 @@ element *lookup(symbolTable *, char *);
 
 element *insert(symbolTable *, char *);
 
+bucket *insertBucket(symbolTable *, bucket *);
+
+bucket *deleteBucket(symbolTable *, element);
+
 symbolTable *dump(symbolTable *);
 
 void dump_real(symbolTable *, int);

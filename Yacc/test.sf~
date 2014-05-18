@@ -15,6 +15,10 @@ program example
 
 	common /d/
 
+	data / d / 20.0 /
+
+	parameter (a = 10, b=2)
+
 
 	interface ! interface for forward declarations
 
@@ -31,7 +35,6 @@ program example
 
 			real x, y
 
-			multiply = x + y
 
 
 		end subroutine multiply
@@ -40,8 +43,8 @@ program example
 	end interface
 
 
-	c = 1 + 1
-
+	c = e + 1
+	e[10] = 200
 
 	1.0 + 4e7
 	!println "hello "" world"

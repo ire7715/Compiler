@@ -1,5 +1,5 @@
 scanner: SymbolTable.o Yacc.o lex.yy.o
-	gcc -o scanner lex.yy.o Yacc.o SymbolTable.o -ll
+	gcc -o scanner lex.yy.o Yacc.o SymbolTable.o -ll -lm
 
 lex.yy.o: Lex.l
 	flex -i Lex.l

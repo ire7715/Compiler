@@ -3,7 +3,26 @@
 #include "SymbolTable.h"
 
 void printElement(element e){	// Simply prints an element.
-	fprintf(stdout, "%s\r\n", e.variable);
+	fprintf(stdout, "%s :: ", e.variable);
+	switch(e.type){
+	case 1:
+			fprintf(stdout, "integer");
+			break;
+	case 2:
+			fprintf(stdout, "real");
+			break;
+	case 3:
+			fprintf(stdout, "string");
+			break;
+	case 4:
+			fprintf(stdout, "boolean");
+			break;
+	default:
+			if(e.subRegion != NULL)
+				fprintf(stdout, "procedure");
+			break;
+	}
+	fprintf(stdout, "\n\r");
 }
 
 symbolTable *create(symbolTable *parent){	// Initialize a symbol table and return the pointer of that symbol table.
@@ -57,9 +76,31 @@ element *insert(symbolTable *st, char *s){	// Insert a variable name into symbol
 	return &(newB->inner);
 }
 
+bucket *insertBucket(symbolTable *st, bucket *buck){
+	unsigned int h = hash(buck->inner.variable);
+	buck->link = st->table[h].link;
+	st->table[h].link = buck;
+	return buck;
+}
+
+bucket *deleteBucket(symbolTable *st, element e){
+	unsigned int h = hash(e.variable);
+	bucket *cur = st->table[h].link, *prev = &(st->table[h]);
+	element *temp;
+	while(cur != NULL){
+		if(strcmp(cur->inner.variable, e.variable) == 0){
+			prev->link = cur->link;
+			cur->link = NULL;
+			return cur;
+		}
+		prev = cur;
+		cur = cur->link;
+	}
+}
+
 symbolTable *dump(symbolTable *st){	// Visit all slots and traverse all buckets in the chain, and print all data contained.
 	fprintf(stdout, "\033[38;5;45m*** Symbol table ***\033[0;0m\r\n");	// \033 is for the console color. For more information please refer to https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
-	dump_real(st, 1);
+	dump_real(st, 0);
 	fprintf(stdout, "\033[38;5;45m*** End symbol table ***\033[0;0m\r\n");
 	return st;
 }
@@ -76,12 +117,10 @@ void dump_real(symbolTable *st, int depth){	// Visit all slots and traverse all 
 	for(i = 0; i< TABLE_SIZE ; i++){
 		cur = st->table[i].link;
 		while(cur != NULL){
+			fprintf(stdout, "%s", padding);
+			printElement(cur->inner);
 			if(cur->inner.subRegion != NULL)
 				dump_real(cur->inner.subRegion, depth+1);
-			else{
-				fprintf(stdout, "%s", padding);
-				printElement(cur->inner);
-			}
 			cur = cur->link;
 		}
 	}
