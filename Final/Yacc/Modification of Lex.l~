@@ -1,0 +1,5 @@
+add some keywords.
+add yylval assignments.
+some structures and including "Yacc.tab.h"
+
+remove some unnecessary code. (still prints tokens, it is helpful when developing.)

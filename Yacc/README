@@ -1,0 +1,15 @@
+Modification to Lex.l
+	add some keywords.
+	add yylval assignments.
+	some structures and including "Yacc.tab.h"
+
+	remove some unnecessary code. (still prints tokens, it is helpful when developing.)
+
+
+Scanner usage:
+the path of input file shall follow the execution command.( e.g. ./scanner test.sf)
+you can append some argument to show more information. 
+	-t shows each token
+	-d shows each derive
+	no arguements only prints comment in *.sf and error message.
+file name must be the first place, the order of other arguments doesn't matter.
