@@ -43,10 +43,10 @@ do{															\
 
 #define isNum(s)	(s.type == INT_T || s.type == REAL_T)
 #define typeString(s)	(s == BOOL_T)?("boolean"):(				\
-							(s == INT_T)?("integer"):(			\
+							(s == INT_T)?("int"):(				\
 								(s == REAL_T)?("real"):(			\
 									(s == STR_T)?("string"):(	\
-									"empty")						\
+									"void")							\
 								)									\
 							)										\
 						)
@@ -54,17 +54,21 @@ do{															\
 extern FILE *yyin;
 extern long int lineNo;
 symbolTable *global, *current;
-int tokenPrint, derivePrint;
+int tokenPrint, derivePrint, errorOccured, failedRemove;
+FILE *byteCode;
+char className[250], tab_pad[] = {'\0', '\t', '\t', '\t', '\t', '\t', '\t', '\t', '\t', '\t', '\0'};
+int local_count, tab_count = 0;
 
 void yyerror(char *msg)
 {
     fprintf(stderr, "\033[38;5;196m%d: %s\033[0;0m\r\n", lineNo, msg);
+	errorOccured = 1;
 }
 
 void argListCopy(node headNode){
 // After a procedure determine its arguments, we need to build a chain points to each element in symbol table.
 	nodeP cur = headNode.ep->typeList, oldHead = cur, newC;
-	if(cur - oldHead < 0xFFFF){
+	if(cur != NULL && cur - oldHead < 0xFFFF){
 	// I'm not sure why, but Yacc sometimes change the pointer to NULL.
 	// So I use the distance of logical address to check if these pointers were established in a short peroid.
 	// These works just copy the original "ep" to the new node.
@@ -72,7 +76,7 @@ void argListCopy(node headNode){
 		newC->ep = cur->ep;
 		cur = cur->next;
 		headNode.ep->typeList = newC;
-		while(cur - oldHead < 0xFFFF){
+		while(cur != NULL && cur - oldHead < 0xFFFF){
 			newC->next = (nodeP)malloc(sizeof(node));
 			newC = newC->next;
 			newC->ep = cur->ep;
@@ -82,10 +86,87 @@ void argListCopy(node headNode){
 		headNode.ep->typeList = NULL;
 }
 
+void tab(){
+	if(tab_count >= 10){
+		fprintf(stderr, "Error: over-nested program\r\n");
+		return;
+	}
+	tab_pad[tab_count++] = '\t';
+	tab_pad[tab_count] = '\0';
+}
+
+void tabShift(){
+	if(tab_count <= 0){
+		fprintf(stderr, "Error: minus tabShift called\r\n");
+		return;
+	}
+	tab_pad[tab_count--] = '\t';
+	tab_pad[tab_count] = '\0';
+}
+
+void printsAllGlobal(){
+	int i;
+	bucket *cur;
+	for(i = 0; i< TABLE_SIZE ; i++){
+		cur = global->table[i].link;
+		while(cur != NULL){
+			if(cur->inner.subRegion == NULL)		// Only int type needs to declare. Strings are treated as constant.
+				fprintf(byteCode, "%sfield static %s %s\r\n", tab_pad, typeString(cur->inner.type), cur->inner.variable);
+			cur = cur->link;
+		}
+	}
+}
+
+void printMethod(element e){
+	nodeP cur;
+	int first = 1;
+	fprintf(byteCode, "%smethod public static %s %s(", tab_pad, typeString(e.type), e.variable);
+	cur = e.typeList;
+	while(cur != NULL){
+		if(!first)
+			fprintf(byteCode, ", ");
+		else
+			first = 0;
+		fprintf(byteCode, typeString(cur->ep->type));
+		cur = cur->next;
+	}
+	fprintf(byteCode, ")\r\n%smax_stack 15\r\n%smax_locals 15\r\n%s{\r\n", tab_pad, tab_pad, tab_pad);
+	tab();
+}
+
+void enumerateLocalVar(symbolTable *st){
+	int i, local_count=0;
+	bucket *cur;
+	for(i = 0; i< TABLE_SIZE ; i++){
+		cur = st->table[i].link;
+		while(cur != NULL){
+			if(cur->inner.subRegion == NULL && cur->inner.type == INT_T)	// variable don't have sub-scope and shall be integer  
+				cur->inner.location = local_count++;
+			else
+				cur->inner.location = -1; 
+			cur = cur->link;
+		}
+	}
+}
+
+void put(element e){
+	// the result of computable shall be on the top of stack.
+	if(isInGlobal(global, e))
+		fprintf(byteCode, "%sputstatic int %s.%s\r\n", tab_pad, className, e.variable);
+	else
+		fprintf(byteCode, "%sistore %d\r\n", tab_pad, e.location);
+}
+
 %}
 
 %code requires {
 #include "SymbolTable.h"
+
+typedef struct _TYPEL{
+		int type;
+		struct _TYPEL *next;
+} typeLs;
+
 }
 
 %token	DEL_COMMA DEL_COLON DEL_DUAL_COLON DEL_SEMICOLON DEL_L_PARENTHESIS DEL_R_PARENTHESIS
@@ -118,16 +199,14 @@ void argListCopy(node headNode){
 		} data;
 	} constant;
 	node nodes;
-	struct _TYPEL{
-		int type;
-		struct _TYPEL *next;
-	} typeL;
+	node *nodePointer;
+	typeLs *typeL;
 }
 
 %start file_p
-%type	<constant>	type computable expr boolean_operation relational_operation mathematical_operation array_indexing
-%type	<nodes>		id_list_p id_list arguments
-%type	<typeL>		computable_list computable_list_p pass_arguments
+%type	<constant>		type computable expr boolean_operation relational_operation mathematical_operation array_indexing
+%type	<nodePointer>	id_list_p id_list arguments
+%type	<typeL>			computable_list computable_list_p pass_arguments
 
 %left	OP_EQV OP_NEQV
 %left	OP_OR
@@ -141,7 +220,7 @@ void argListCopy(node headNode){
 
 %%
 
-file_p	:	linebreak_p program file C_EOF { return ACCEPTABLE; /* acceptable state */ };
+file_p	:	linebreak file program file C_EOF { return ACCEPTABLE; /* acceptable state */ };
 
 file	:	procedure_description linebreak_p file
 		|	;
@@ -152,6 +231,9 @@ program : KW_PROGRAM IDENTIFIER linebreak_p
 				$2.ep->subRegion = temp;
 				$2.ep->type = 0;
 				current = temp;
+
+				fprintf(byteCode, "%smethod public static void main(java.lang.String[])\r\n%smax_stack 15\r\n%smax_locals 15\r\n%s{\r\n", tab_pad, tab_pad, tab_pad, tab_pad);
+				tab();
 			} program_description KW_END KW_PROGRAM IDENTIFIER linebreak_p
 			{
 				if(strcmp($2.ep->variable, $8.ep->variable) != 0){	// Check if the program id are matched or not.
@@ -160,9 +242,20 @@ program : KW_PROGRAM IDENTIFIER linebreak_p
 				}
 				current = current->parent;
 				derive("program", "program "id("%s")" "gmr("linebreak_p")" "gmr("program_description")" end program "id("%s")" "gmr("ends"), $2.ep->variable, $8.ep->variable);
+
+				fprintf(byteCode, "%sreturn\r\n", tab_pad);
+				tabShift();
+				fprintf(byteCode, "%s}\r\n", tab_pad);
 			};
 
-program_description	:	var_const_declare_p	interface_declare_p	stmts	{ derive("program_description", gmr("var_const_declare_p")" "gmr("interface_declare_p")" "gmr("stmts")); };
+program_description	:	{
+							local_count = 0;
+						}
+						var_const_declare_p
+						{
+							//enumerateLocalVar(current);
+						}
+						interface_declare_p	stmts	{ derive("program_description", gmr("var_const_declare_p")" "gmr("interface_declare_p")" "gmr("stmts")); };
 
 var_const_declare_p	:	var_const_declare linebreak_p	var_const_declare_p
 						{
@@ -172,9 +265,10 @@ var_const_declare_p	:	var_const_declare linebreak_p	var_const_declare_p
 
 var_const_declare	:	type attr_list dual_colon id_list_p
 						{	// Assign the type of identifiers.
-							nodeP cur = &($4);
+							nodeP cur = $4;
 							while(cur != NULL){
 								cur->ep->type = $1.type;
+								cur->ep->location = local_count++;
 								cur = cur->next;
 							}
 							derive("var_const_declare", gmr("type")" "gmr("attr_list")" "gmr("dual_colon")" "gmr("id_list_p"));
@@ -188,21 +282,29 @@ const_init	:	KW_PARAMETER DEL_L_PARENTHESIS const_init_list_p DEL_R_PARENTHESIS
 					derive("const_init", "parameter ( "gmr("const_init_list_p")" )");
 				};
 
-const_init_list_p	:	IDENTIFIER OP_ASSIGN computable const_init_list
+const_init_list_p	:	IDENTIFIER OP_ASSIGN computable
 						{
 							if($1.ep->type != $3.type){
 								yyerror("semantic error: type doesn't match while constant initalizing");
 								return REJECT;
 							}
+
+							put(*($1.ep));
+						} const_init_list
+						{
 							derive("const_init_list_p", id("%s")" = "gmr("computable")" "gmr("const_init_list"), $1.ep->variable);
 						};
 
-const_init_list	:	DEL_COMMA IDENTIFIER OP_ASSIGN computable const_init_list
+const_init_list	:	DEL_COMMA IDENTIFIER OP_ASSIGN computable
 					{
 						if($2.ep->type != $4.type){
 							yyerror("semantic error: type doesn't match while constant initalizing");
 							return REJECT;
 						}
+
+						put(*($2.ep));
+					} const_init_list
+					{
 						derive("const_init_list", ", "id("%s")" = "gmr("computable")" "gmr("const_init_list"), $2.ep->variable);
 					}
 				|	;
@@ -214,6 +316,8 @@ var_init	:	KW_DATA OP_DIVIDE IDENTIFIER OP_DIVIDE computable OP_DIVIDE
 						return REJECT;
 					}
 					derive("var_init", "data / "id("%s")" / "gmr("computable")" /", $3.ep->variable);
+
+					put(*($3.ep));
 				};
 
 global_declare	:	KW_COMMON OP_DIVIDE IDENTIFIER OP_DIVIDE
@@ -239,24 +343,28 @@ dual_colon	:	DEL_DUAL_COLON	{ derive("dual_colon", "::"); }
 
 id_list_p	:	IDENTIFIER id_list
 				{	// Make all ids a chain, so we can get all these ids which were claimed in a row.
-					if($2.ep != NULL)
-						$1.next = &($2);
+					if($2 != NULL)
+						$1.next = $2;
 					else
 						$1.next = NULL;
-					$$ = $1;
+					$$ = (nodeP)malloc(sizeof(node));
+					memcpy($$, &($1), sizeof(node));					
+					//$$ = $1;
 					derive("id_list_p", id("%s")" "gmr("id_list"), $1.ep->variable);
 				};
 
 id_list	:	DEL_COMMA IDENTIFIER id_list
 			{	// Make chain, same as previous grammar.
-				if($3.ep != NULL)
-					$2.next = &($3);
+				if($3 != NULL)
+					$2.next = $3;
 				else
 					$2.next = NULL;
-				$$ = $2;
+				$$ = (nodeP)malloc(sizeof(node));
+				memcpy($$, &($2), sizeof(node));
+				//$$ = $2;
 				derive("id_list", ", "id("%s")" "gmr("id_list"), $2.ep->variable);
 			}
-		|	{	$$.ep = NULL; };
+		|	{	$$ = NULL; };
 
 interface_declare_p	:	interface_declare interface_declare_p	{ derive("interface_declare_p", gmr("interface_declare")gmr("interface_declare_p")); }
 					|	;
@@ -275,11 +383,7 @@ procedure_declaration	:	recursive_p KW_SUB IDENTIFIER
 								current = temp;
 							} arguments 
 							{	// get all arguments
-								if($5.ep == NULL)
-									$3.ep->typeList = NULL;
-								else{
-									$3.ep->typeList = &($5);
-								}
+								$3.ep->typeList = $5;
 							}
 							linebreak_p 
 							var_const_declare_p
@@ -290,7 +394,7 @@ procedure_declaration	:	recursive_p KW_SUB IDENTIFIER
 									return REJECT;
 								}
 								current = current->parent;
-								argListCopy($3);	// build a new chain to indicate to all arguments.
+								//argListCopy($3);	// build a new chain to indicate to all arguments.
 								derive("procedure_declaration", gmr("recursive_p")" subroutine "id("%s")" "gmr("arguments")" "gmr("linebreak_p")" "gmr("program_description")" end subroutine "id("%s")" "gmr("linebreak_p"), $3.ep->variable, $11.ep->variable);
 							}
 						|	recursive_p KW_FUNC IDENTIFIER
@@ -301,10 +405,7 @@ procedure_declaration	:	recursive_p KW_SUB IDENTIFIER
 								current = temp;
 							} arguments 
 							{
-								if($5.ep == NULL)
-									$3.ep->typeList = NULL;
-								else
-									$3.ep->typeList = &($5);
+								$3.ep->typeList = $5;
 							}
 							linebreak_p 
 							var_const_declare_p
@@ -316,12 +417,12 @@ procedure_declaration	:	recursive_p KW_SUB IDENTIFIER
 								}
 								$3.ep->type = lookup(current, $3.ep->variable)->type;
 								current = current->parent;
-								argListCopy($3);
+								//argListCopy($3);
 								derive("procedure_declaration", gmr("recursive_p")" function "id("%s")" "gmr("arguments")" "gmr("linebreak_p")" "gmr("program_description")" end function "id("%s")" "gmr("linebreak_p"), $3.ep->variable, $11.ep->variable);
 							};
 
 procedure_description	:	recursive_p KW_SUB IDENTIFIER 
-							{	// same as previous rule, but need to check is this procedure had already built.
+							{	// same as previous rule, but need to check if this procedure had already built.
 								if($3.ep->subRegion == NULL){
 									symbolTable *temp = create(current);
 									$3.ep->subRegion = temp;
@@ -331,24 +432,35 @@ procedure_description	:	recursive_p KW_SUB IDENTIFIER
 							} arguments 
 							{
 								if($3.ep->typeList == NULL){
-									if($5.ep == NULL)
-										$3.ep->typeList = NULL;
-									else
-										$3.ep->typeList = &($5);
+										$3.ep->typeList = $5;
 								}
 							}
 							linebreak_p 
-							program_description
+							{
+								local_count = 0;
+							}
+							var_const_declare_p
+							{
+								//enumerateLocalVar(current);
+							}
+							interface_declare_p
+							{
+								printMethod(*($3.ep));
+							}
+							stmts
 							KW_END KW_SUB IDENTIFIER
 							{
-								if(strcmp($3.ep->variable, $11.ep->variable) != 0){
+								if(strcmp($3.ep->variable, $16.ep->variable) != 0){
 									yyerror("syntex error: subroutine id name doesn't match.\r\n");
 									return REJECT;
 								}
 								current = current->parent;
-								if($3.ep->typeList == &($5))
-									argListCopy($3);
-								derive("procedure_description", gmr("recursive_p")" subroutine "id("%s")" "gmr("arguments")" "gmr("linebreak_p")" "gmr("program_description")" end subroutine "id("%s")" "gmr("linebreak_p"), $3.ep->variable, $11.ep->variable);
+								/*if($3.ep->typeList == &($5))
+									argListCopy($3);*/
+								derive("procedure_description", gmr("recursive_p")" subroutine "id("%s")" "gmr("arguments")" "gmr("linebreak_p")" "gmr("program_description")" end subroutine "id("%s")" "gmr("linebreak_p"), $3.ep->variable, $16.ep->variable);
+
+								tabShift();
+								fprintf(byteCode, "%s}\r\n", tab_pad);
 							}
 						|	recursive_p KW_FUNC IDENTIFIER
 							{
@@ -361,25 +473,42 @@ procedure_description	:	recursive_p KW_SUB IDENTIFIER
 							} arguments 
 							{
 								if($3.ep->typeList == NULL){
-								if($5.ep == NULL)
-									$3.ep->typeList = NULL;
-								else
-									$3.ep->typeList = &($5);
+									$3.ep->typeList = $5;
 								}
 							}
 							linebreak_p 
-							program_description
+							{
+								local_count = 0;
+							}
+							var_const_declare_p
+							{
+								element *func_buff;
+								$3.ep->type = lookup(current, $3.ep->variable)->type;
+								if(lookupLocally(current, $3.ep->variable) == NULL){
+									func_buff = insert(current, $3.ep->variable);
+									func_buff->type = $3.ep->type;
+									func_buff->location = local_count++;
+								}
+								//enumerateLocalVar(current);
+							}
+							interface_declare_p
+							{
+								printMethod(*($3.ep));
+							}
+							stmts
 							KW_END KW_FUNC IDENTIFIER
 							{
-								if(strcmp($3.ep->variable, $11.ep->variable) != 0){
+								if(strcmp($3.ep->variable, $16.ep->variable) != 0){
 									yyerror("syntex error: function id name doesn't match.\r\n");
 									return REJECT;
 								}
-								$3.ep->type = lookup(current, $3.ep->variable)->type;
 								current = current->parent;
-								if($3.ep->typeList == &($5))
-									argListCopy($3);
-								derive("procedure_description", gmr("recursive_p")" function "id("%s")" "gmr("arguments")" "gmr("linebreak_p")" "gmr("program_description")" end function "id("%s")" "gmr("linebreak_p"), $3.ep->variable, $11.ep->variable);
+								/*if($3.ep->typeList == &($5))
+									argListCopy($3);*/
+								derive("procedure_description", gmr("recursive_p")" function "id("%s")" "gmr("arguments")" "gmr("linebreak_p")" "gmr("program_description")" end function "id("%s")" "gmr("linebreak_p"), $3.ep->variable, $16.ep->variable);
+
+								tabShift();
+								fprintf(byteCode, "%s}\r\n", tab_pad);
 							};
 
 arguments	:	DEL_L_PARENTHESIS id_list_p DEL_R_PARENTHESIS
@@ -387,7 +516,7 @@ arguments	:	DEL_L_PARENTHESIS id_list_p DEL_R_PARENTHESIS
 					$$ = $2;
 					derive("arguments", "( "gmr("id_list_p")" )");
 				}
-			|	{ $$.ep = NULL; };
+			|	{ $$ = NULL; };
 
 recursive_p	:	KW_RECURSIVE	{ derive("recursive_p", "recursive"); }
 			|	; 
@@ -410,8 +539,8 @@ stmt	:	KW_READ IDENTIFIER							{ derive("stmt", "read "id("%s"), $2.ep->variabl
 					yyerror("syntex error: invoke a non-subroutine with call");
 					return REJECT;
 				}
-				if($3.type != 0){				// There is one or more arguments passed in.
-					struct _TYPEL *tp = &($3);
+				if($3 != NULL){				// There is one or more arguments passed in.
+					typeLs *tp = $3;
 					nodeP curN = $2.ep->typeList;
 					while(tp != NULL && curN != NULL){	// Check the arguments' type.
 						if(tp->type != curN->ep->type){
@@ -421,7 +550,7 @@ stmt	:	KW_READ IDENTIFIER							{ derive("stmt", "read "id("%s"), $2.ep->variabl
 						tp = tp->next;
 						curN = curN->next;
 					}
-					if(tp != NULL && tp - &($3) < 0xFFFF){	// number of arguments doesn't match.
+					if(tp != NULL){	// number of arguments doesn't match.
 						yyerror("sematic error: given too much arguments");
 						return REJECT;
 					}else if(curN != NULL){
@@ -678,7 +807,8 @@ mathematical_operation	:	computable OP_ADD computable
 								derive("mathematical_operation", " - "gmr("computable"));
 							};
 
-computable	:	CONST_INT									{ $$ = $1; derive("computable", constant("%d"), $1.data.Zval); }
+computable	:	CONST_STRING								{ $$ = $1; derive("computable", constant("%s"), $1.data.Str); }
+			|	CONST_INT									{ $$ = $1; derive("computable", constant("%d"), $1.data.Zval); }
 			|	CONST_REAL									{ $$ = $1; derive("computable", constant("%f"), $1.data.Rval); }
 			|	CONST_BOOL									{ $$ = $1; derive("computable", constant("%s"), ($1.data.Zval)?("true"):("false")); }
 			|	IDENTIFIER pass_arguments
@@ -687,8 +817,8 @@ computable	:	CONST_INT									{ $$ = $1; derive("computable", constant("%d"), $
 						yyerror("syntex error: apply a subroutine as function");
 						return REJECT;
 					}
-					if($2.type != 0){				// There is one or more arguments passed in.
-						struct _TYPEL *tp = &($2);
+					if($2 != NULL){				// There is one or more arguments were passed in.
+						typeLs *tp = $2;
 						nodeP curN = $1.ep->typeList;
 						while(tp != NULL && curN != NULL){
 							if(tp->type != curN->ep->type){
@@ -698,7 +828,7 @@ computable	:	CONST_INT									{ $$ = $1; derive("computable", constant("%d"), $
 							tp = tp->next;
 							curN = curN->next;
 						}
-						if(tp != NULL && tp - &($2) < 0xFFFF){
+						if(tp != NULL){
 							yyerror("sematic error: given too much arguments");
 							return REJECT;
 						}else if(curN != NULL){
@@ -727,28 +857,24 @@ pass_arguments	:	DEL_L_PARENTHESIS computable_list_p DEL_R_PARENTHESIS
 						$$ = $2;
 						derive("pass_arguments", "( "gmr("computable_list_p")" )");
 					}
-				|	{ $$.type = 0;};
+				|	{ $$ = NULL;};
 
 computable_list_p	:	computable computable_list
 						{	// Like id_list_p
-							if($2.type != 0)
-								$$.next = &($2);
-							else
-								$$.next = NULL;
-							$$.type = $1.type;
+							$$ = (typeLs *)malloc(sizeof(typeLs));
+							$$->next = $2;
+							$$->type = $1.type;
 							derive("computable_list_p", gmr("computable")" "gmr("computable_list"));
 						};
 
 computable_list	:	DEL_COMMA computable computable_list
 					{	// Like id_list
-						if($3.type != 0)
-							$$.next = &($3);
-						else
-							$$.next = NULL;
-						$$.type = $2.type;
+						$$ = (typeLs *)malloc(sizeof(typeLs));
+						$$->next = $3;
+						$$->type = $2.type;
 						derive("computable_list", ", "gmr("computable")" "gmr("computable_list"));
 					}
-				|	{ $$.type = 0; };
+				|	{ $$ = NULL; };
 
 assign	:	OP_ASSIGN			{ derive("assign", "="); }
 		|	OP_POINTER_ASSIGN	{ derive("assign", "=>"); };
@@ -765,31 +891,59 @@ int main(int argc, char* argv[]){
 // you can append some argument to show more information. 
 //		-t shows each token
 //		-d shows each derive
+//		-f delete the bytecode if there exists an error(either syntex or semantic).
 //		no arguements only prints comment in *.sf and error message.
 // file name must be the first place, the order of other arguments doesn't matter.
+	char fileName[256];
 	int i;
-	tokenPrint = derivePrint = 0;
+	tokenPrint = derivePrint = failedRemove = errorOccured = 0;
 	if(argc>=2){
 		yyin = fopen(argv[1],"r");
 		if(yyin != NULL)
 			fprintf(stdout, "\033[38;5;46mScanning from file %s\033[0;0m\r\n", argv[1]);
-		else
-			fprintf(stdout, "\033[38;5;46mScanning from stdin\033[0;0m\r\n");
+		else{
+			fprintf(stdout, "\033[38;5;46mError, cannot find file named \"%s\"\033[0;0m\r\n", argv[1]);
+			return 0;
+		}
 	}else
 		fprintf(stdout, "\033[38;5;46mScanning from stdin\033[0;0m\r\n");
 	for(i = 2; i<argc; i++){
 		if(strcmp(argv[i], "-t")==0)
 			tokenPrint = 1;
-		if(strcmp(argv[i], "-d")==0)
+		else if(strcmp(argv[i], "-d")==0)
 			derivePrint = 1;
+		else if(strcmp(argv[i], "-f")==0)
+			failedRemove = 1;
 	}
+
+	if(yyin == NULL || yyin==stdin){				// generates this class.
+		sprintf(className, "defaultClass");
+	}else{	// Avoid some illegal characters for class name, I didn't list all of illegal characters.
+		sscanf(argv[1], "%[^(\. ~)]", className);
+	}
+	sprintf(fileName, "%s.jasm", className);
+	byteCode = fopen(fileName, "w");
+	if(byteCode == NULL){
+		fprintf(stdout, "\033[38;5;46mError, cannot create file named \"%s\"\033[0;0m\r\n", fileName);
+		return 0;
+	}
+	fprintf(byteCode, "class %s{\r\n", className);
+	tab();
 
 	global = current = create(NULL);	// there shall be a global scope, and it is the root.
 	yyparse();
 
+	printsAllGlobal();
+
+	tabShift();
+	fprintf(byteCode, "}", className);
 	fprintf(stdout, "\033[38;5;46mEnd of scanning\033[0;0m\r\n");
 
 	dump(global);
 	release(current);
+	fclose(byteCode);
 	fclose(yyin);
+
+	if(errorOccured && failedRemove)
+		remove(fileName);
 }

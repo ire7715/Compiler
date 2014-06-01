@@ -1,0 +1,27 @@
+class test{
+	method public static int subtract(int, int)
+max_stack 15
+max_locals 15
+{
+}
+method public static void main(java.lang.String[])
+max_stack 15
+max_locals 15
+{
+putstatic int test.d
+istore 0
+istore 1
+return
+}
+	method public static void multiply(real, real)
+max_stack 15
+max_locals 15
+{
+}
+	method public static int add(int, int)
+max_stack 15
+max_locals 15
+{
+}
+	field static int d
+}

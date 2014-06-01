@@ -14,7 +14,7 @@ typedef struct _NODE{
 } node;
 typedef struct _ELEMENT{
 	char variable[ID_LEN];
-	int type;
+	int type, location;
 	symbolTableP subRegion;
 	nodeP typeList;
 	// typeList stores the pointers point to those arguments of this procedure, NULL for no any arguments.
@@ -37,6 +37,10 @@ void printElement(element);
 symbolTable *create(symbolTable *);
 
 unsigned int hash(char *);
+
+int isInGlobal(symbolTable *global, element);
+
+element *lookupLocally(symbolTable *, char *);
 
 element *lookup(symbolTable *, char *);
 

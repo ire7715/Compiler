@@ -1,4 +1,16 @@
+function subtract(x, y)
 
+
+
+			integer x, y
+
+			
+			integer subtract
+
+			subtract = x - y
+
+
+end function subtract
 
 program example
 
@@ -6,7 +18,7 @@ program example
 	integer a, b, c ! integers
 
 
-	real :: d ! real
+	integer :: d ! real
 
 
 	integer, dimension(10) :: e ! array with 10 integers
@@ -17,7 +29,7 @@ program example
 
 	common /d/
 
-	data / d / 20.0 /
+	data / d / 20 /
 
 	parameter (a = 10, b=2)
 
@@ -27,7 +39,7 @@ program example
 
 
 
-
+		
 
 
 
@@ -35,7 +47,7 @@ program example
 
 
 
-			real x, y
+			integer x, y
 
 
 
@@ -71,9 +83,9 @@ program example
 		end if
 	end if
 
-	call multiply( 1.0,2.0)
+	call multiply( 1, 2)
 
-	b = 1.0 + 4e7
+	d = 1 + 400
 	!println "hello "" world"
 end program example
 
@@ -89,7 +101,7 @@ subroutine multiply(x, y)
 			x = -x
 
 
-		end subroutine multiply
+end subroutine multiply
 
 function add(w, z)
 
@@ -106,4 +118,4 @@ function add(w, z)
 			
 			add = w + z
 
-		end function add
+end function add

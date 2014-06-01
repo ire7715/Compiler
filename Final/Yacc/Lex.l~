@@ -12,7 +12,7 @@
 
 long int lineNo = 0;
 char outputBuff[OUT_SIZE], strBuff[MAX_STR_SIZE];	// outputBuff stores token tags in current line.
-extern int tokenPrint
+extern int tokenPrint;
 
 void printTokenOrd(char *text){
 	fprintf(stdout, "<%s>\r\n", text);
@@ -218,6 +218,7 @@ integer (\+|-)?[0-9]+
 		printToken(yytext, "identifier");
 		if((yylval.nodes.ep = lookup(current, yytext)) == NULL)
 			yylval.nodes.ep = insert(current, yytext);
+	dump(global);
 		return IDENTIFIER;
 	}
 	/* identifiers end */

@@ -14,9 +14,10 @@ typedef struct _NODE{
 } node;
 typedef struct _ELEMENT{
 	char variable[ID_LEN];
-	int type;
+	int type, location;
 	symbolTableP subRegion;
-	nodeP typeList;	// typeList stores the pointers point to those arguments of this procedure (if it is a procedure).
+	nodeP typeList;
+	// typeList stores the pointers point to those arguments of this procedure, NULL for no any arguments.
 } element;	// A smallest unit in hash table, presents an element.
 
 typedef struct _BUCKET *bucketP;
@@ -36,6 +37,8 @@ void printElement(element);
 symbolTable *create(symbolTable *);
 
 unsigned int hash(char *);
+
+int isInGlobal(symbolTable *global, element);
 
 element *lookup(symbolTable *, char *);
 

@@ -60,6 +60,8 @@ void printElement(element e){	// Simply prints an element.
 			}
 			fprintf(stdout, " )");
 		}
+	}else{
+		fprintf(stdout, " @ %d", e.location);
 	}
 	fprintf(stdout, "\n\r");
 }
@@ -83,6 +85,22 @@ unsigned int hash(char *str){	// BKDR hash
 		hash = hash * seed + (*str++);
 
 	return hash % TABLE_SIZE;
+}
+
+int isInGlobal(symbolTable *global, element e){
+	return (lookupLocally(global, e.variable) == NULL)?(0):(1);
+}
+
+element *lookupLocally(symbolTable *st, char *s){
+	unsigned int h = hash(s);
+	bucket *cur = st->table[h].link;	// Hash to the corresponded slot, and then traverse the chain to find the correct string.
+	element *temp;
+	while(cur != NULL){
+		if(strcmp(cur->inner.variable, s) == 0)
+			return &(cur->inner);
+		cur = cur->link;
+	}	// If the while loop ends, this identifier doesn't exist in this scope.
+	return NULL;
 }
 
 element *lookup(symbolTable *st, char *s){	// Look up a specific variable name.
