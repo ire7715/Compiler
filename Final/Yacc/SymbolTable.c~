@@ -10,10 +10,10 @@
 
 #define isNum(s)	(s.type == INT_T || s.type == REAL_T)
 #define typeString(s)	(s == BOOL_T)?("boolean"):(			\
-							(s == INT_T)?("integer"):(			\
+							(s == INT_T)?("int"):(			\
 								(s == REAL_T)?("real"):(		\
-									(s == STR_T)?("string"):(	\
-									"empty")									\
+									(s == STR_T)?("java.lang.String"):(	\
+									"void")									\
 								)										\
 							)											\
 						)
@@ -50,7 +50,7 @@ void printElement(element e){	// Simply prints an element.
 		if(cur != NULL){			// This block prints each parameter's name and type.
 			fprintf(stdout, "( ");
 			first = 1;
-			while(cur != NULL && cur - e.typeList < 0xFFFF){
+			while(cur != NULL /*&& cur - e.typeList < 0xFFFF*/){
 				if(first)
 					first = 0;
 				else
@@ -60,6 +60,8 @@ void printElement(element e){	// Simply prints an element.
 			}
 			fprintf(stdout, " )");
 		}
+	}else{
+		fprintf(stdout, " @ %d, const(%s), subRegion(%s)", e.location, (e.isConst)?("ture"):("false"), (e.subRegion == NULL)?("NULL"):("not NULL"));
 	}
 	fprintf(stdout, "\n\r");
 }
@@ -87,6 +89,16 @@ unsigned int hash(char *str){	// BKDR hash
 
 int isInGlobal(symbolTable *global, element e){
 	return (lookupLocally(global, e.variable) == NULL)?(0):(1);
+}
+
+int isArgument(element scope, element *examin){
+	nodeP cur = scope.typeList;
+	while(cur != NULL){
+		if(cur->ep == examin)
+			return 1;
+		cur = cur->next;
+	}
+	return 0;
 }
 
 element *lookupLocally(symbolTable *st, char *s){

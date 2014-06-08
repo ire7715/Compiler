@@ -1,0 +1,62 @@
+program helloWorld
+	character, parameter t
+	parameter (t = "hi")
+	integer val, i, pow
+	data/val/100/
+	integer cnt
+	common/cnt/
+
+	interface
+		function power (b, p)
+			integer b, p, power
+		end function power
+
+		subroutine printHAHA
+		end subroutine printHAHA
+
+		subroutine setCnt(c)
+			integer c, cnt
+		end subroutine setCnt
+	end interface
+
+	if ( val > 99 ) then
+		val = 2
+	else
+		val = 98
+	end if
+
+	call printHAHA
+
+	call setCnt(77)
+
+	do i = 1, 10
+		val = val + i
+	end do
+	pow = power(2 ,3)
+	println "hello world"
+	println t
+	println val
+	println pow
+	print "cnt = "
+	println cnt
+end program helloWorld
+
+subroutine printHAHA
+
+	println "haha"
+end subroutine printHAHA
+
+subroutine setCnt (c)
+	integer cnt
+	common/cnt/
+	cnt = c
+end subroutine setCnt
+
+function power (b, p)
+	integer i, p, b, power
+
+	power = 1
+	do i = 1, p
+		power = power * b
+	end do
+end function power

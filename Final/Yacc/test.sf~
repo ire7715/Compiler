@@ -7,6 +7,8 @@ function subtract(x, y)
 			
 			integer subtract
 
+			integer nomatter
+
 			subtract = x - y
 
 
@@ -15,19 +17,20 @@ end function subtract
 program example
 
 
-	integer a, b, c ! integers
-
-
 	integer :: d ! real
 
 
-	integer, dimension(10) :: e ! array with 10 integers
+	common /d/
+
+	integer a, b, c ! integers
+
+
+	integer :: e ! array with 10 integers
 
 
 	integer, dimension(10), pointer :: p ! pointer to 10-integer array
 
-
-	common /d/
+	character :: str
 
 	data / d / 20 /
 
@@ -67,26 +70,27 @@ program example
 	end interface
 
 
-	c = e[10] + add( 1,2)
-	e[10] = 200
+	c = e + add( 1,2)
+	e = 200
 
-	do a = 10, 20, 2
-		exit
+	do b = 10, 20
+		e = e + 2
 	end do
 
 	if( .TRUE. ) then
-		e[5] = 20
-		if( .TRUE. ) then
-			e[5] = 3
-		else
-			e[5] = 4
+		e = 20
+		if( .TRUE. ) then ! 82
+			e = 3 ! 83
+		else ! 84
+			e = 4
 		end if
 	end if
 
 	call multiply( 1, 2)
 
 	d = 1 + 400
-	!println "hello "" world"
+
+	print "hello "" world"
 end program example
 
 subroutine multiply(x, y)

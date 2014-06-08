@@ -169,11 +169,11 @@ integer (\+|-)?[0-9]+
 	}
 <STRING>\\\" {
 		// Met a slash and a double-quote implies a double-quote in string.
-		sprintf(strBuff, "%s%c", strBuff, (char)0x22);
+		sprintf(strBuff, "%s%c%c", strBuff, (char) 0x5C, (char)0x22);
 	}
 <STRING>\"\" {
 		// Met two double-quote implies a double-quote in string.
-		sprintf(strBuff, "%s%c", strBuff, (char)0x22);
+		sprintf(strBuff, "%s%c%c", strBuff, (char) 0x5C, (char)0x22);
 	}
 <STRING>[^(\"|\n|(\\\"))]* {
 		// Met anything neither double-quote nor line break then it is a part of string. Store it.
@@ -218,13 +218,12 @@ integer (\+|-)?[0-9]+
 		printToken(yytext, "identifier");
 		if((yylval.nodes.ep = lookup(current, yytext)) == NULL)
 			yylval.nodes.ep = insert(current, yytext);
-	dump(global);
 		return IDENTIFIER;
 	}
 	/* identifiers end */
 
 " "|"\t" { /*fprintf(stdout, "%s", yytext);*/ }
-"\n" { printToken("C_LF", "LineBreak"); newLine(); return C_LF;}
+"\n" { printToken("C_LF", "LineBreak"); newLine();}
 <<EOF>> { return C_EOF;}
 %%
 

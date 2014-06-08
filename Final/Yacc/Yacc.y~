@@ -41,23 +41,28 @@ do{															\
 #define STR_T		3
 #define BOOL_T		4
 
+#define DIM_C			0x0001
+#define POINTER_C		0x0010
+#define PARAMETER_C	0x0100
+
 #define isNum(s)	(s.type == INT_T || s.type == REAL_T)
-#define typeString(s)	(s == BOOL_T)?("boolean"):(				\
-							(s == INT_T)?("int"):(				\
-								(s == REAL_T)?("real"):(			\
-									(s == STR_T)?("string"):(	\
-									"void")							\
-								)									\
-							)										\
+#define typeString(s)	(s == BOOL_T)?("boolean"):(						\
+							(s == INT_T)?("int"):(						\
+								(s == REAL_T)?("double"):(				\
+									(s == STR_T)?	("java.lang.String"):	\
+													("void")				\
+								)											\
+							)												\
 						)
 
 extern FILE *yyin;
 extern long int lineNo;
 symbolTable *global, *current;
+element *currentE;
 int tokenPrint, derivePrint, errorOccured, failedRemove;
 FILE *byteCode;
 char className[250], tab_pad[] = {'\0', '\t', '\t', '\t', '\t', '\t', '\t', '\t', '\t', '\t', '\0'};
-int local_count, tab_count = 0;
+int local_count, tab_count = 0, label_count = 1, labelTemp[10][5], exit[10];
 
 void yyerror(char *msg)
 {
@@ -111,7 +116,22 @@ void printsAllGlobal(){
 		cur = global->table[i].link;
 		while(cur != NULL){
 			if(cur->inner.subRegion == NULL)		// Only int type needs to declare. Strings are treated as constant.
-				fprintf(byteCode, "%sfield static %s %s\r\n", tab_pad, typeString(cur->inner.type), cur->inner.variable);
+				fprintf(byteCode, "%sfield static %s %s\n", tab_pad, typeString(cur->inner.type), cur->inner.variable);
+			cur = cur->link;
+		}
+	}
+}
+
+void initializeVars(symbolTable *st){
+	int i;
+	bucket *cur;
+	for(i = 0; i< TABLE_SIZE ; i++){
+		cur = st->table[i].link;
+		while(cur != NULL){
+			if(cur->inner.subRegion == NULL && cur->inner.isConst == 0){		// Only int type needs to declare. Strings are treated as constant.
+				fprintf(byteCode, "%ssipush %d\n", tab_pad, cur->inner.data.val);
+				fprintf(byteCode, "%sistore %d\n", tab_pad, cur->inner.location);
+			}
 			cur = cur->link;
 		}
 	}
@@ -130,7 +150,7 @@ void printMethod(element e){
 		fprintf(byteCode, typeString(cur->ep->type));
 		cur = cur->next;
 	}
-	fprintf(byteCode, ")\r\n%smax_stack 15\r\n%smax_locals 15\r\n%s{\r\n", tab_pad, tab_pad, tab_pad);
+	fprintf(byteCode, ")\n%smax_stack 15\n%smax_locals 15\n%s{\n", tab_pad, tab_pad, tab_pad);
 	tab();
 }
 
@@ -151,10 +171,45 @@ void enumerateLocalVar(symbolTable *st){
 
 void put(element e){
 	// the result of computable shall be on the top of stack.
-	if(isInGlobal(global, e))
-		fprintf(byteCode, "%sputstatic int %s.%s\r\n", tab_pad, className, e.variable);
-	else
-		fprintf(byteCode, "%sistore %d\r\n", tab_pad, e.location);
+	element *ep;
+	if(isInGlobal(global, e)){
+		if(ep = lookupLocally(current, e.variable))
+			fprintf(byteCode, "%sistore %d\n", tab_pad, ep->location);
+		else
+			fprintf(byteCode, "%sputstatic int %s.%s\n", tab_pad, className, e.variable);
+	}else
+		fprintf(byteCode, "%sistore %d\n", tab_pad, e.location);
+}
+
+void get(element e){
+	// the result of computable shall be on the top of stack.
+	element *ep;
+	if(e.isConst == 1){
+		if(e.type == INT_T)
+			fprintf(byteCode, "%ssipush %d\n", tab_pad, e.data.val);
+		else
+			fprintf(byteCode, "%sldc \"%s\"\n", tab_pad, e.data.str);
+	}else if(isInGlobal(global, e)){
+		if(ep = lookupLocally(current, e.variable))
+			fprintf(byteCode, "%siload %d\n", tab_pad, ep->location);
+		else
+			fprintf(byteCode, "%sgetstatic int %s.%s\n", tab_pad, className, e.variable);
+	}else
+		fprintf(byteCode, "%siload %d\n", tab_pad, e.location);
+}
+
+void getConst(int val){
+	fprintf(byteCode, "%ssipush %d\n", tab_pad, val);
+}
+
+int getLabel(int labelTemp[][5], int amount){
+	for(; amount>0; )
+		labelTemp[tab_count][--amount] = label_count++;
+	return tab_count;
+}
+
+void putLabel(int number){
+	fprintf(byteCode, "L%d:\n", number);
 }
 
 %}
@@ -192,31 +247,36 @@ typedef struct _TYPEL{
 %union {
 	struct _CONST{
 		int type;	// 0x01 for int, 0x02 for double, 0x03 for string, 0x04 for boolean.
+		int isVar;
 		union _DATA{
 			int Zval;
 			double Rval;
 			char Str[2048];
+			element *ep;
 		} data;
 	} constant;
 	node nodes;
 	node *nodePointer;
 	typeLs *typeL;
+	int nonTerType;
 }
 
 %start file_p
 %type	<constant>		type computable expr boolean_operation relational_operation mathematical_operation array_indexing
+%type	<constant>		const_computable // const_expr const_math_op const_bool_op
 %type	<nodePointer>	id_list_p id_list arguments
 %type	<typeL>			computable_list computable_list_p pass_arguments
+%type	<nonTerType>	print_p optional_else attrs attr_list
 
-%left	OP_EQV OP_NEQV
-%left	OP_OR
-%left	OP_AND
-%left	OP_NOT
-%left	OP_LT OP_LE OP_GT OP_GE OP_EQ OP_NE
-%left	OP_ADD OP_SUB
-%left	OP_MULTIPLY OP_DIVIDE
-%right	OP_EXPONENT
-%nonassoc UMINUS
+%left		OP_EQV OP_NEQV
+%left		OP_OR
+%left		OP_AND
+%left		OP_NOT
+%left		OP_LT OP_LE OP_GT OP_GE OP_EQ OP_NE
+%left		OP_ADD OP_SUB
+%left		OP_MULTIPLY OP_DIVIDE
+%right		OP_EXPONENT
+%nonassoc	UMINUS
 
 %%
 
@@ -230,10 +290,8 @@ program : KW_PROGRAM IDENTIFIER linebreak_p
 				symbolTable *temp = create(current);
 				$2.ep->subRegion = temp;
 				$2.ep->type = 0;
+				currentE = $2.ep;
 				current = temp;
-
-				fprintf(byteCode, "%smethod public static void main(java.lang.String[])\r\n%smax_stack 15\r\n%smax_locals 15\r\n%s{\r\n", tab_pad, tab_pad, tab_pad, tab_pad);
-				tab();
 			} program_description KW_END KW_PROGRAM IDENTIFIER linebreak_p
 			{
 				if(strcmp($2.ep->variable, $8.ep->variable) != 0){	// Check if the program id are matched or not.
@@ -243,18 +301,25 @@ program : KW_PROGRAM IDENTIFIER linebreak_p
 				current = current->parent;
 				derive("program", "program "id("%s")" "gmr("linebreak_p")" "gmr("program_description")" end program "id("%s")" "gmr("ends"), $2.ep->variable, $8.ep->variable);
 
+				fprintf(byteCode, "%sreturn\n", tab_pad);
 				tabShift();
-				fprintf(byteCode, "%sreturn\r\n}\r\n", tab_pad);
+				fprintf(byteCode, "%s}\n", tab_pad);
 			};
 
 program_description	:	{
 							local_count = 0;
-						}
-						var_const_declare_p
+						}var_const_declare_p interface_declare_p 
 						{
 							//enumerateLocalVar(current);
+							printsAllGlobal();
+							fprintf(byteCode, "%smethod public static void main(java.lang.String[])\n%smax_stack 15\n%smax_locals 15\n%s{\n", tab_pad, tab_pad, tab_pad, tab_pad);
+							tab();
+							initializeVars(current);
 						}
-						interface_declare_p	stmts	{ derive("program_description", gmr("var_const_declare_p")" "gmr("interface_declare_p")" "gmr("stmts")); };
+						stmts	{ derive("program_description", gmr("var_const_declare_p")" "gmr("interface_declare_p")" "gmr("stmts")); };
+
+/*global_declare_p	:	global_declare linebreak_p global_declare_p	{ derive("var_const_declare", gmr("global_declare")); }
+					|	;*/
 
 var_const_declare_p	:	var_const_declare linebreak_p	var_const_declare_p
 						{
@@ -267,7 +332,12 @@ var_const_declare	:	type attr_list dual_colon id_list_p
 							nodeP cur = $4;
 							while(cur != NULL){
 								cur->ep->type = $1.type;
-								cur->ep->location = local_count++;
+								if(($2 & PARAMETER_C) == 0)
+									if(isArgument(*(currentE), cur->ep) == 0){
+										cur->ep->location = local_count++;
+									}
+								else
+									cur->ep->isConst = 1;
 								cur = cur->next;
 							}
 							derive("var_const_declare", gmr("type")" "gmr("attr_list")" "gmr("dual_colon")" "gmr("id_list_p"));
@@ -281,42 +351,60 @@ const_init	:	KW_PARAMETER DEL_L_PARENTHESIS const_init_list_p DEL_R_PARENTHESIS
 					derive("const_init", "parameter ( "gmr("const_init_list_p")" )");
 				};
 
-const_init_list_p	:	IDENTIFIER OP_ASSIGN computable
+const_init_list_p	:	IDENTIFIER OP_ASSIGN const_computable
 						{
 							if($1.ep->type != $3.type){
 								yyerror("semantic error: type doesn't match while constant initalizing");
 								return REJECT;
 							}
 
-							put(*($1.ep));
+							//put(*($1.ep));
+							if($1.ep->type == INT_T)
+								$1.ep->data.val = $3.data.Zval;
+							else{
+								$1.ep->data.str = (char *)malloc(sizeof(char)*strlen($3.data.Str));
+								strcpy($1.ep->data.str, $3.data.Str);
+							}
 						} const_init_list
 						{
 							derive("const_init_list_p", id("%s")" = "gmr("computable")" "gmr("const_init_list"), $1.ep->variable);
 						};
 
-const_init_list	:	DEL_COMMA IDENTIFIER OP_ASSIGN computable
+const_init_list	:	DEL_COMMA IDENTIFIER OP_ASSIGN const_computable
 					{
 						if($2.ep->type != $4.type){
 							yyerror("semantic error: type doesn't match while constant initalizing");
 							return REJECT;
 						}
 
-						put(*($2.ep));
+						//put(*($2.ep));
+						if($2.ep->type == INT_T)
+							$2.ep->data.val = $4.data.Zval;
+						else{
+							$2.ep->data.str = (char *)malloc(sizeof(char)*strlen($4.data.Str));
+							strcpy($2.ep->data.str, $4.data.Str);
+						}
 					} const_init_list
 					{
 						derive("const_init_list", ", "id("%s")" = "gmr("computable")" "gmr("const_init_list"), $2.ep->variable);
 					}
 				|	;
 
-var_init	:	KW_DATA OP_DIVIDE IDENTIFIER OP_DIVIDE computable OP_DIVIDE
+var_init	:	KW_DATA OP_DIVIDE IDENTIFIER OP_DIVIDE const_computable OP_DIVIDE
 				{
 					if($3.ep->type != $5.type){
 						yyerror("semantic error: type doesn't match while variable initalizing");
 						return REJECT;
 					}
+					if($3.ep->isConst != 0){
+						yyerror("semantic error: initializing a constant with data. (Do you mean parameter rather than data?)");
+						return REJECT;
+					}
 					derive("var_init", "data / "id("%s")" / "gmr("computable")" /", $3.ep->variable);
 
-					put(*($3.ep));
+					//put(*($3.ep));
+					if($3.ep->type == INT_T)
+						$3.ep->data.val = $5.data.Zval;
 				};
 
 global_declare	:	KW_COMMON OP_DIVIDE IDENTIFIER OP_DIVIDE
@@ -325,17 +413,56 @@ global_declare	:	KW_COMMON OP_DIVIDE IDENTIFIER OP_DIVIDE
 						derive("global_declare", "common / "id("%s")" / ", $3.ep->variable);
 					};
 
+const_computable	:	CONST_INT 		{ $$.data.Zval = $1.data.Zval; $$.type = INT_T; }
+					|	CONST_STRING	{ strcpy($$.data.Str, $1.data.Str); $$.type = STR_T; };
+						/*const_expr
+						{
+							if($$.type == INT_T)
+								$$.data.Zval = $1.data.Zval;
+							else
+								strcpy($$.data.Str, $1.data.Str);
+						};
+
+const_expr	:	const_math_op
+				{
+					$$.type = $1.type;
+					$$.data.Zval = $1.data.Zval;
+				}
+			|	const_bool_op
+				{
+					$$.type = $1.type;
+					$$.data.Zval = $1.data.Zval;
+				}
+			|	CONST_STRING	{ strcpy($$.data.Str, $1.data.Str); }
+			|	CONST_INT
+				{
+					$$.type = INT_T;
+					$$.data.Zval = $1.data.Zval;
+				};
+
+const_math_op	:	CONST_INT OP_ADD CONST_INT		{ $$.data.Zval = $1.data.Zval + $3.data.Zval; }
+				|	CONST_INT OP_SUB CONST_INT		{ $$.data.Zval = $1.data.Zval - $3.data.Zval; }
+				|	CONST_INT OP_DIVIDE CONST_INT	{ $$.data.Zval = $1.data.Zval / $3.data.Zval; }
+				|	CONST_INT OP_MULTIPLY CONST_INT	{ $$.data.Zval = $1.data.Zval * $3.data.Zval; }
+				|	OP_SUB CONST_INT %prec UMINUS	{ $$.data.Zval = - $2.data.Zval; };
+
+const_bool_op	:	CONST_INT OP_AND CONST_INT		{ $$.data.Zval = $1.data.Zval & $3.data.Zval;}
+				|	CONST_INT OP_OR CONST_INT		{ $$.data.Zval = $1.data.Zval | $3.data.Zval;}
+				|	OP_NOT CONST_INT				{ $$.data.Zval = !$2.data.Zval; }
+				|	CONST_INT OP_EQV CONST_INT		{ $$.data.Zval = !($1.data.Zval ^ $3.data.Zval);}
+				|	CONST_INT OP_NEQV CONST_INT		{ $$.data.Zval = ($1.data.Zval ^ $3.data.Zval);};*/
+
 type	:	KW_CHAR	{ $$.type = STR_T; derive("type", "character "); }
 		|	KW_INT	{ $$.type = INT_T; derive("type", "integer "); }
 		|	KW_REAL	{ $$.type = REAL_T; derive("type", "real "); }
 		|	KW_LOGIC{ $$.type = BOOL_T; derive("type", "logical "); };
 
-attr_list	:	DEL_COMMA attrs attr_list	{ derive("attr_list", ", "gmr("attrs")" "gmr("attrs_list")); }
-			|	;
+attr_list	:	DEL_COMMA attrs attr_list	{ derive("attr_list", ", "gmr("attrs")" "gmr("attrs_list")); $$ = $2 | $3; }
+			|	{ $$ = 0;};
 
-attrs	:	KW_DIM DEL_L_PARENTHESIS CONST_INT DEL_R_PARENTHESIS	{ derive("attrs", "dimension ( %d )", $3.data.Zval); }
-		|	KW_POINTER												{ derive("attrs", "pointer"); }
-		|	KW_PARAMETER											{ derive("attrs", "parameter"); };
+attrs	:	KW_DIM DEL_L_PARENTHESIS CONST_INT DEL_R_PARENTHESIS	{ derive("attrs", "dimension ( %d )", $3.data.Zval); $$ = DIM_C; }
+		|	KW_POINTER												{ derive("attrs", "pointer"); $$ = POINTER_C; }
+		|	KW_PARAMETER											{ derive("attrs", "parameter"); $$ = PARAMETER_C; };
 
 dual_colon	:	DEL_DUAL_COLON	{ derive("dual_colon", "::"); }
 			|	;
@@ -346,6 +473,7 @@ id_list_p	:	IDENTIFIER id_list
 						$1.next = $2;
 					else
 						$1.next = NULL;
+					$1.ep->isConst = 0;
 					$$ = (nodeP)malloc(sizeof(node));
 					memcpy($$, &($1), sizeof(node));					
 					//$$ = $1;
@@ -358,6 +486,7 @@ id_list	:	DEL_COMMA IDENTIFIER id_list
 					$2.next = $3;
 				else
 					$2.next = NULL;
+				$2.ep->isConst = 0;
 				$$ = (nodeP)malloc(sizeof(node));
 				memcpy($$, &($2), sizeof(node));
 				//$$ = $2;
@@ -379,6 +508,7 @@ procedure_declaration	:	recursive_p KW_SUB IDENTIFIER
 								lift2global($3);
 								$3.ep->type = 0;
 								$3.ep->subRegion = temp;
+								currentE = $3.ep;
 								current = temp;
 							} arguments 
 							{	// get all arguments
@@ -401,6 +531,7 @@ procedure_declaration	:	recursive_p KW_SUB IDENTIFIER
 								symbolTable *temp = create(current);
 								lift2global($3);
 								$3.ep->subRegion = temp;
+								currentE = $3.ep;
 								current = temp;
 							} arguments 
 							{
@@ -428,6 +559,8 @@ procedure_description	:	recursive_p KW_SUB IDENTIFIER
 									$3.ep->type = 0;
 								}
 								current = $3.ep->subRegion;
+								currentE = $3.ep;
+								local_count = 0;
 							} arguments 
 							{
 								if($3.ep->typeList == NULL){
@@ -436,7 +569,7 @@ procedure_description	:	recursive_p KW_SUB IDENTIFIER
 							}
 							linebreak_p 
 							{
-								local_count = 0;
+								//local_count = 0;
 							}
 							var_const_declare_p
 							{
@@ -458,8 +591,9 @@ procedure_description	:	recursive_p KW_SUB IDENTIFIER
 									argListCopy($3);*/
 								derive("procedure_description", gmr("recursive_p")" subroutine "id("%s")" "gmr("arguments")" "gmr("linebreak_p")" "gmr("program_description")" end subroutine "id("%s")" "gmr("linebreak_p"), $3.ep->variable, $16.ep->variable);
 
+								fprintf(byteCode, "%sreturn\n", tab_pad);
 								tabShift();
-								fprintf(byteCode, "%s}\r\n", tab_pad);
+								fprintf(byteCode, "%s}\n", tab_pad);
 							}
 						|	recursive_p KW_FUNC IDENTIFIER
 							{
@@ -469,6 +603,8 @@ procedure_description	:	recursive_p KW_SUB IDENTIFIER
 									$3.ep->type = 0;
 								}
 								current = $3.ep->subRegion;
+								currentE = $3.ep;
+								local_count = 0;
 							} arguments 
 							{
 								if($3.ep->typeList == NULL){
@@ -477,7 +613,7 @@ procedure_description	:	recursive_p KW_SUB IDENTIFIER
 							}
 							linebreak_p 
 							{
-								local_count = 0;
+								//local_count = 0;
 							}
 							var_const_declare_p
 							{
@@ -497,6 +633,9 @@ procedure_description	:	recursive_p KW_SUB IDENTIFIER
 							stmts
 							KW_END KW_FUNC IDENTIFIER
 							{
+								fprintf(byteCode, "%siload %d\n", tab_pad, lookup(current, $3.ep->variable)->location);
+								fprintf(byteCode, "%sireturn\n", tab_pad);
+
 								if(strcmp($3.ep->variable, $16.ep->variable) != 0){
 									yyerror("syntex error: function id name doesn't match.\r\n");
 									return REJECT;
@@ -507,12 +646,17 @@ procedure_description	:	recursive_p KW_SUB IDENTIFIER
 								derive("procedure_description", gmr("recursive_p")" function "id("%s")" "gmr("arguments")" "gmr("linebreak_p")" "gmr("program_description")" end function "id("%s")" "gmr("linebreak_p"), $3.ep->variable, $16.ep->variable);
 
 								tabShift();
-								fprintf(byteCode, "%s}\r\n", tab_pad);
+								fprintf(byteCode, "%s}\n", tab_pad);
 							};
 
 arguments	:	DEL_L_PARENTHESIS id_list_p DEL_R_PARENTHESIS
 				{	// pass the id chain.
 					$$ = $2;
+					nodeP cur = $2;
+					while(cur != NULL){
+						cur->ep->location = local_count++;
+						cur = cur->next;
+					}
 					derive("arguments", "( "gmr("id_list_p")" )");
 				}
 			|	{ $$ = NULL; };
@@ -526,12 +670,55 @@ stmt_p	:	stmt linebreak_p stmt_p	{ derive("stmt_p", gmr("stmt")" "gmr("linebreak
 		|	;
 
 stmt	:	KW_READ IDENTIFIER							{ derive("stmt", "read "id("%s"), $2.ep->variable); }
-		|	print_p computable							{ derive("stmt", gmr("print_p")" "gmr("computable")); }
+		|	print_p
+			{
+				fprintf(byteCode, "%sgetstatic java.io.PrintStream java.lang.System.out\n", tab_pad);
+			}
+			computable
+			{
+				derive("stmt", gmr("print_p")" "gmr("computable"));
+
+				if($1 == 0)	// 0 for print when the nonternimal is print_p
+					fprintf(byteCode, "%sinvokevirtual void java.io.PrintStream.print(%s)\n", tab_pad, typeString($3.type));
+				else if($1 == 1)	// 1 for println when the nonternimal is print_p
+					fprintf(byteCode, "%sinvokevirtual void java.io.PrintStream.println(%s)\n", tab_pad, typeString($3.type));
+			}
 		|	assignment									{ derive("stmt", gmr("assignment")); }
 		|	computable									{ derive("stmt", gmr("computable")); }
 		|	condition									{ derive("stmt", gmr("condition")); }
-		|	KW_RETURN									{ derive("stmt", "return"); }
-		|	KW_DO do_parameter linebreak_p do_stmt KW_END KW_DO	{ derive("stmt", "do "gmr("do_parameter")" "gmr("linebreak_p")" "gmr("stmt_p")" end do"); }
+		|	KW_RETURN									{ derive("stmt", "return"); fprintf(byteCode, "%sreturn\n");}
+		|	KW_DO IDENTIFIER OP_ASSIGN computable 
+			{
+				put(*($2.ep));
+				tab(); getLabel(labelTemp, 2);
+				putLabel(labelTemp[tab_count][0]);
+			}
+			DEL_COMMA computable linebreak_p
+			{ /*labelTemp[tab_count+1][0] = putLabel();*/
+				get(*($2.ep));
+				fprintf(byteCode, "%sisub\n", tab_pad);
+				fprintf(byteCode, "%siflt L%d\n", tab_pad, labelTemp[tab_count][1]);
+				exit[tab_count] = labelTemp[tab_count][1];
+			} do_stmt KW_END KW_DO
+			{
+				derive("stmt", "do "id("%s")" = "gmr("computable")" , "gmr("computable")" "gmr("linebreak_p")" "gmr("do_stmt")" end do");
+
+				get(*($2.ep));
+				fprintf(byteCode, "%siconst_1\n", tab_pad);
+				fprintf(byteCode, "%siadd\n", tab_pad);
+				put(*($2.ep));
+
+				/*get(*($2.ep));
+				if($7.isVar == 0)	// upperbound is a constant
+					fprintf(byteCode, "%ssipush %d\n", tab_pad, $7.data.Zval);
+				else
+					get(*($7.data.ep));
+				fprintf(byteCode, "%sisub\n", tab_pad);
+				fprintf(byteCode, "%sifle L%d\n", tab_pad, labelTemp[tab_count][0]);*/
+				fprintf(byteCode, "%sgoto L%d\n", tab_pad, labelTemp[tab_count][0]);
+				putLabel(labelTemp[tab_count][1]);
+				tabShift();
+			}
 		|	KW_CALL IDENTIFIER	pass_arguments
 			{
 				if($2.ep->type != 0){	// Check this id is a subroutine.
@@ -558,29 +745,77 @@ stmt	:	KW_READ IDENTIFIER							{ derive("stmt", "read "id("%s"), $2.ep->variabl
 					}
 				}
 				derive("stmt", "call "id("%s")" "gmr("pass_arguments"), $2.ep->variable);
+
+				fprintf(byteCode, "%sinvokestatic void %s.%s", tab_pad, className, $2.ep->variable);
+				node *cur;
+				int first;
+				cur = $2.ep->typeList;
+				fprintf(byteCode, "( ");
+				first = 1;
+				while(cur != NULL /*&& cur - $1.ep->typeList < 0xFFFF*/){
+					if(first)
+						first = 0;
+					else
+						fprintf(byteCode, ", ");
+					fprintf(byteCode, "%s", typeString(cur->ep->type));
+					cur = cur->next;
+				}
+				fprintf(byteCode, " )\n");
 			};
 
-condition	:	KW_IF DEL_L_PARENTHESIS computable DEL_R_PARENTHESIS KW_THEN linebreak_p stmt_p KW_ELSE linebreak_p stmt_p KW_END KW_IF
+condition	:	KW_IF DEL_L_PARENTHESIS computable DEL_R_PARENTHESIS KW_THEN 
+				{
+					tab();
+					getLabel(labelTemp, 2);
+					fprintf(byteCode, "%sifeq L%d\n", tab_pad, labelTemp[tab_count][0]); // goto else case
+				} linebreak_p stmts optional_else KW_END KW_IF
 				{
 					if($3.type != BOOL_T){
 						yyerror("syntex error: given a non-boolean expression");
 					}
-					derive("condition", "if ( "gmr("computable")" ) then "gmr("linebreak_p")" "gmr("stmt_p")" else "gmr("linebreak_p")" "gmr("stmt_p")" end if");
+					derive("condition", "if ( "gmr("computable")" ) then "gmr("linebreak_p")" "gmr("stmts")" "gmr("optional_else")" end if");
+
+					tabShift();
 				}
-			|	KW_IF DEL_L_PARENTHESIS computable DEL_R_PARENTHESIS KW_THEN linebreak_p stmt_p KW_END KW_IF
+			/*|	KW_IF DEL_L_PARENTHESIS computable DEL_R_PARENTHESIS KW_THEN linebreak_p stmts KW_END KW_IF
 				{
 					if($3.type != BOOL_T){
 						yyerror("syntex error: given a non-boolean expression");
 					}
 					derive("condition", "if ( "gmr("computable")" ) then "gmr("linebreak_p")" "gmr("stmt_p")" end if");
-				}
-			|	KW_IF DEL_L_PARENTHESIS computable DEL_R_PARENTHESIS stmt
+				}*/
+			|	KW_IF DEL_L_PARENTHESIS computable DEL_R_PARENTHESIS 
+				{
+					tab();
+					getLabel(labelTemp, 1);
+					fprintf(byteCode, "%sifeq L%d\n", tab_pad, labelTemp[tab_count][0]); // goto else case
+				} stmt
 				{
 					if($3.type != BOOL_T){
 						yyerror("syntex error: given a non-boolean expression");
 					}
 					derive("condition", "if ( "gmr("computable")" ) "gmr("stmt"));
+
+					putLabel(labelTemp[tab_count][0]);
+					tabShift();
 				};
+
+optional_else	:	KW_ELSE linebreak_p 
+					{ 
+						fprintf(byteCode, "%sgoto L%d\n", tab_pad, labelTemp[tab_count][1]); // goto the end if
+						putLabel(labelTemp[tab_count][0]);
+					}
+					stmts
+					{
+						derive("optional_else", "else "gmr("linebreak_p")" "gmr("stmts"));
+
+						$$ = 1; // 1 for there is an else-clause.
+						putLabel(labelTemp[tab_count][1]);
+					}
+				|	{
+						$$ = 0; /* 0 for there is not an else-clause. */ 
+						putLabel(labelTemp[tab_count][0]);
+					};
 
 assignment	:	IDENTIFIER array_indexing assign computable
 				{
@@ -588,20 +823,28 @@ assignment	:	IDENTIFIER array_indexing assign computable
 						yyerror("syntex error: type doesn't match");
 					}
 					derive("assignment", id("%s")" "gmr("array_indexing")" "gmr("assign")" "gmr("computable"), $1.ep->variable);
+
+					put(*($1.ep));
 				};
 
 do_stmt	:	stmt linebreak_p do_stmt	{ derive("do_stmt", gmr("stmt")" "gmr("linebreak_p")" "gmr("do_stmt")); }
-		|	KW_EXIT	linebreak_p do_stmt	{ derive("do_stmt", "exit"); }
+		|	KW_EXIT	linebreak_p do_stmt
+			{ derive("do_stmt", "exit"); 
+				fprintf(byteCode, "%sgoto L%d\n", tab_pad, exit[tab_count]);
+			}
 		|	;
 
-do_parameter	:	assignment DEL_COMMA computable do_diff	{ derive("do_parameter", gmr("assignment")", "gmr("computable")" "gmr("do_diff")); }
+/*do_parameter	:	assignment DEL_COMMA computable do_diff
+					{
+						derive("do_parameter", gmr("assignment")", "gmr("computable")" "gmr("do_diff"));
+					}
 				|	;
 
 do_diff	:	DEL_COMMA computable	{ derive("do_diff", ", "gmr("computable"));}
-		|	;
+		|	;*/
 
-print_p	:	KW_PRINT	{ derive("print_p", "print"); }
-		|	KW_PRINTLN	{ derive("print_p", "println"); };
+print_p	:	KW_PRINT	{ $$ = 0; derive("print_p", "print"); }
+		|	KW_PRINTLN	{ $$ = 1; derive("print_p", "println"); };
 
 array_indexing	:	DEL_L_SQUARE_BRACKET computable DEL_R_SQUARE_BRACKET
 					{
@@ -628,6 +871,8 @@ boolean_operation	:	computable OP_AND computable
 								return REJECT;
 							}
 							derive("boolean_operation", gmr("computable")" .AND. "gmr("computable"));
+
+							fprintf(byteCode, "%siand\n", tab_pad);
 						}
 					|	computable OP_OR computable
 						{
@@ -639,6 +884,8 @@ boolean_operation	:	computable OP_AND computable
 								return REJECT;
 							}
 							derive("boolean_operation", gmr("computable")" .OR. "gmr("computable"));
+
+							fprintf(byteCode, "%sior\n", tab_pad);
 						}
 					|	OP_NOT computable
 						{
@@ -650,6 +897,9 @@ boolean_operation	:	computable OP_AND computable
 								return REJECT;
 							}
 							derive("boolean_operation", ".NOT. "gmr("computable"));
+
+							fprintf(byteCode, "%siconst_1\n", tab_pad);
+							fprintf(byteCode, "%sixor\n", tab_pad);
 						}
 					|	computable OP_EQV computable
 						{
@@ -662,6 +912,14 @@ boolean_operation	:	computable OP_AND computable
 								return REJECT;
 							}
 							derive("boolean_operation", gmr("computable")" .EQV. "gmr("computable"));
+
+							tab();getLabel(labelTemp, 1);
+							fprintf(byteCode, "%sisub\n", tab_pad);
+							fprintf(byteCode, "%sifne L%d\n", tab_pad, labelTemp[tab_count][0]);
+							fprintf(byteCode, "%siconst_1\n", tab_pad);
+							putLabel(labelTemp[tab_count][0]);
+							fprintf(byteCode, "%siconst_0\n", tab_pad);
+							tabShift();
 						}
 					|	computable OP_NEQV computable
 						{
@@ -673,6 +931,14 @@ boolean_operation	:	computable OP_AND computable
 								return REJECT;
 							}
 							derive("boolean_operation", gmr("computable")" .NEQV. "gmr("computable"));
+
+							tab();getLabel(labelTemp, 1);
+							fprintf(byteCode, "%sisub\n", tab_pad);
+							fprintf(byteCode, "%sifeq L%d\n", tab_pad, labelTemp[tab_count][0]);
+							fprintf(byteCode, "%siconst_1\n", tab_pad);
+							putLabel(labelTemp[tab_count][0]);
+							fprintf(byteCode, "%siconst_0\n", tab_pad);
+							tabShift();
 						};
 
 relational_operation	:	computable OP_LT computable
@@ -680,36 +946,96 @@ relational_operation	:	computable OP_LT computable
 								$$.data.Zval = ($1.data.Zval < $3.data.Zval);
 								$$.type = BOOL_T;
 								derive("relational_operation", gmr("computable")" .LT. "gmr("computable"));
+
+								tab();getLabel(labelTemp, 2);
+								fprintf(byteCode, "%sisub\n", tab_pad);
+								fprintf(byteCode, "%siflt L%d\n", tab_pad, labelTemp[tab_count][0]);
+								fprintf(byteCode, "%siconst_0\n", tab_pad);
+								fprintf(byteCode, "%sgoto L%d\n", tab_pad, labelTemp[tab_count][1]);
+								putLabel(labelTemp[tab_count][0]);
+								fprintf(byteCode, "%siconst_1\n", tab_pad);
+								putLabel(labelTemp[tab_count][1]);
+								tabShift();
 							}
 						|	computable OP_LE computable
 							{
 								$$.data.Zval = ($1.data.Zval <= $3.data.Zval);
 								$$.type = BOOL_T;
 								derive("relational_operation", gmr("computable")" .LE. "gmr("computable"));
+
+								tab();getLabel(labelTemp, 2);
+								fprintf(byteCode, "%sisub\n", tab_pad);
+								fprintf(byteCode, "%sifle L%d\n", tab_pad, labelTemp[tab_count][0]);
+								fprintf(byteCode, "%siconst_0\n", tab_pad);
+								fprintf(byteCode, "%sgoto L%d\n", tab_pad, labelTemp[tab_count][1]);
+								putLabel(labelTemp[tab_count][0]);
+								fprintf(byteCode, "%siconst_1\n", tab_pad);
+								putLabel(labelTemp[tab_count][1]);
+								tabShift();
 							}
 						|	computable OP_GT computable
 							{
 								$$.data.Zval = ($1.data.Zval > $3.data.Zval);
 								$$.type = BOOL_T;
 								derive("relational_operation", gmr("computable")" .GT. "gmr("computable"));
+
+								tab();getLabel(labelTemp, 2);
+								fprintf(byteCode, "%sisub\n", tab_pad);
+								fprintf(byteCode, "%sifgt L%d\n", tab_pad, labelTemp[tab_count][0]);
+								fprintf(byteCode, "%siconst_0\n", tab_pad);
+								fprintf(byteCode, "%sgoto L%d\n", tab_pad, labelTemp[tab_count][1]);
+								putLabel(labelTemp[tab_count][0]);
+								fprintf(byteCode, "%siconst_1\n", tab_pad);
+								putLabel(labelTemp[tab_count][1]);
+								tabShift();
 							}
 						|	computable OP_GE computable
 							{
 								$$.data.Zval = ($1.data.Zval >= $3.data.Zval);
 								$$.type = BOOL_T;
 								derive("relational_operation", gmr("computable")" .GE. "gmr("computable"));
+
+								tab();getLabel(labelTemp, 2);
+								fprintf(byteCode, "%sisub\n", tab_pad);
+								fprintf(byteCode, "%sifge L%d\n", tab_pad, labelTemp[tab_count][0]);
+								fprintf(byteCode, "%siconst_0\n", tab_pad);
+								fprintf(byteCode, "%sgoto L%d\n", tab_pad, labelTemp[tab_count][1]);
+								putLabel(labelTemp[tab_count][0]);
+								fprintf(byteCode, "%siconst_1\n", tab_pad);
+								putLabel(labelTemp[tab_count][1]);
+								tabShift();
 							}
 						|	computable OP_EQ computable
 							{
 								$$.data.Zval = ($1.data.Zval == $3.data.Zval);
 								$$.type = BOOL_T;
 								derive("relational_operation", gmr("computable")" .EQ. "gmr("computable"));
+
+								tab();getLabel(labelTemp, 2);
+								fprintf(byteCode, "%sisub\n", tab_pad);
+								fprintf(byteCode, "%sifne L%d\n", tab_pad, labelTemp[tab_count][0]);
+								fprintf(byteCode, "%siconst_1\n", tab_pad);
+								fprintf(byteCode, "%sgoto L%d\n", tab_pad, labelTemp[tab_count][1]);
+								putLabel(labelTemp[tab_count][0]);
+								fprintf(byteCode, "%siconst_0\n", tab_pad);
+								putLabel(labelTemp[tab_count][1]);
+								tabShift();
 							}
 						|	computable OP_NE computable
 							{
 								$$.data.Zval = ($1.data.Zval != $3.data.Zval);
 								$$.type = BOOL_T;
 								derive("relational_operation", gmr("computable")" .NE. "gmr("computable"));
+
+								tab();getLabel(labelTemp, 2);
+								fprintf(byteCode, "%sisub\n", tab_pad);
+								fprintf(byteCode, "%sifeq L%d\n", tab_pad, labelTemp[tab_count][0]);
+								fprintf(byteCode, "%siconst_1\n", tab_pad);
+								fprintf(byteCode, "%sgoto L%d\n", tab_pad, labelTemp[tab_count][1]);
+								putLabel(labelTemp[tab_count][0]);
+								fprintf(byteCode, "%siconst_0\n", tab_pad);
+								putLabel(labelTemp[tab_count][1]);
+								tabShift();
 							};
 
 mathematical_operation	:	computable OP_ADD computable
@@ -727,6 +1053,8 @@ mathematical_operation	:	computable OP_ADD computable
 								else
 									$$.data.Rval = $1.data.Rval + $3.data.Rval;
 								derive("mathematical_operation", gmr("computable")" + "gmr("computable"));
+
+								fprintf(byteCode, "%siadd\n", tab_pad);
 							}
 						|	computable OP_SUB computable
 							{
@@ -743,6 +1071,8 @@ mathematical_operation	:	computable OP_ADD computable
 								else
 									$$.data.Rval = $1.data.Rval - $3.data.Rval;
 								derive("mathematical_operation", gmr("computable")" - "gmr("computable"));
+
+								fprintf(byteCode, "%sisub\n", tab_pad);
 							}
 						|	computable OP_MULTIPLY computable
 							{
@@ -759,6 +1089,8 @@ mathematical_operation	:	computable OP_ADD computable
 								else
 									$$.data.Rval = $1.data.Rval * $3.data.Rval;
 								derive("mathematical_operation", gmr("computable")" * "gmr("computable"));
+
+								fprintf(byteCode, "%simul\n", tab_pad);
 							}
 						|	computable OP_DIVIDE computable
 							{
@@ -775,6 +1107,8 @@ mathematical_operation	:	computable OP_ADD computable
 								else
 									$$.data.Rval = $1.data.Rval / $3.data.Rval;
 								derive("mathematical_operation", gmr("computable")" / "gmr("computable"));
+
+								fprintf(byteCode, "%sidiv\n", tab_pad);
 							}
 						|	computable OP_EXPONENT computable
 							{
@@ -804,12 +1138,29 @@ mathematical_operation	:	computable OP_ADD computable
 								else
 									$$.data.Rval = - $2.data.Rval;
 								derive("mathematical_operation", " - "gmr("computable"));
+
+								fprintf(byteCode, "%sineg\n", tab_pad);
 							};
 
-computable	:	CONST_STRING								{ $$ = $1; derive("computable", constant("%s"), $1.data.Str); }
-			|	CONST_INT									{ $$ = $1; derive("computable", constant("%d"), $1.data.Zval); }
+computable	:	CONST_STRING
+				{
+					$$ = $1; derive("computable", constant("%s"), $1.data.Str);
+
+					fprintf(byteCode, "%sldc \"%s\"\n", tab_pad, $1.data.Str);
+				}
+			|	CONST_INT
+				{
+					$$ = $1; derive("computable", constant("%d"), $1.data.Zval);
+
+					fprintf(byteCode, "%ssipush %d\n", tab_pad, $1.data.Zval);
+				}
 			|	CONST_REAL									{ $$ = $1; derive("computable", constant("%f"), $1.data.Rval); }
-			|	CONST_BOOL									{ $$ = $1; derive("computable", constant("%s"), ($1.data.Zval)?("true"):("false")); }
+			|	CONST_BOOL
+				{
+					$$ = $1; derive("computable", constant("%s"), ($1.data.Zval)?("true"):("false"));
+
+					fprintf(byteCode, "%s%s\n", tab_pad, ($1.data.Zval)?("iconst_1"):("iconst_0"));
+				}
 			|	IDENTIFIER pass_arguments
 				{
 					if($1.ep->type == 0){	// Check if it is a function.
@@ -837,7 +1188,29 @@ computable	:	CONST_STRING								{ $$ = $1; derive("computable", constant("%s"),
 					}
 
 					$$.type = $1.ep->type;
+					$$.isVar = 1;
+					$$.data.ep = $1.ep;
 					derive("computable", id("%s")" "gmr("pass_arguments"), $1.ep->variable);
+
+					if($2 == NULL)
+						get(*($1.ep));
+					else{
+						fprintf(byteCode, "%sinvokestatic %s %s.%s", tab_pad, typeString($1.ep->type), className, $1.ep->variable);
+						node *cur;
+						int first;
+						cur = $1.ep->typeList;
+						fprintf(byteCode, "( ");
+						first = 1;
+						while(cur != NULL /*&& cur - $1.ep->typeList < 0xFFFF*/){
+							if(first)
+								first = 0;
+							else
+								fprintf(byteCode, ", ");
+							fprintf(byteCode, "%s", typeString(cur->ep->type));
+							cur = cur->next;
+						}
+						fprintf(byteCode, " )\n");
+					}
 				}
 			|	IDENTIFIER DEL_L_SQUARE_BRACKET computable DEL_R_SQUARE_BRACKET
 				{	// an array element.
@@ -878,9 +1251,9 @@ computable_list	:	DEL_COMMA computable computable_list
 assign	:	OP_ASSIGN			{ derive("assign", "="); }
 		|	OP_POINTER_ASSIGN	{ derive("assign", "=>"); };
  
-linebreak_p	:	C_LF linebreak	{ derive("linkbreak_p", "<C_LF> "gmr("linkbreak")); };
+linebreak_p	:	C_LF linebreak	{ derive("linebreak_p", "<C_LF> "gmr("linkbreak")); };
 
-linebreak	:	C_LF linebreak	{ derive("linkbreak", "<C_LF> "gmr("linkbreak")); };
+linebreak	:	C_LF linebreak	{ derive("linebreak", "<C_LF> "gmr("linkbreak")); };
 			|	;
 
 %%
@@ -926,13 +1299,11 @@ int main(int argc, char* argv[]){
 		fprintf(stdout, "\033[38;5;46mError, cannot create file named \"%s\"\033[0;0m\r\n", fileName);
 		return 0;
 	}
-	fprintf(byteCode, "class %s{\r\n", className);
+	fprintf(byteCode, "class %s\n{\n", className);
 	tab();
 
 	global = current = create(NULL);	// there shall be a global scope, and it is the root.
 	yyparse();
-
-	printsAllGlobal();
 
 	tabShift();
 	fprintf(byteCode, "}", className);

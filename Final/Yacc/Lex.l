@@ -169,11 +169,11 @@ integer (\+|-)?[0-9]+
 	}
 <STRING>\\\" {
 		// Met a slash and a double-quote implies a double-quote in string.
-		sprintf(strBuff, "%s%c", strBuff, (char)0x22);
+		sprintf(strBuff, "%s%c%c", strBuff, (char) 0x5C, (char)0x22);
 	}
 <STRING>\"\" {
 		// Met two double-quote implies a double-quote in string.
-		sprintf(strBuff, "%s%c", strBuff, (char)0x22);
+		sprintf(strBuff, "%s%c%c", strBuff, (char) 0x5C, (char)0x22);
 	}
 <STRING>[^(\"|\n|(\\\"))]* {
 		// Met anything neither double-quote nor line break then it is a part of string. Store it.

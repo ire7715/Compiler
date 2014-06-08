@@ -33,16 +33,14 @@
 /* "%code requires" blocks.  */
 
 /* Line 2068 of yacc.c  */
-#line 63 "Yacc.y"
+#line 87 "Yacc.y"
 
 #include "SymbolTable.h"
-
-typedef struct _NODE *nodeP;
 
 
 
 /* Line 2068 of yacc.c  */
-#line 46 "Yacc.tab.h"
+#line 44 "Yacc.tab.h"
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -132,7 +130,7 @@ typedef union YYSTYPE
 {
 
 /* Line 2068 of yacc.c  */
-#line 89 "Yacc.y"
+#line 111 "Yacc.y"
 
 	struct _CONST{
 		int type;	// 0x01 for int, 0x02 for double, 0x03 for string, 0x04 for boolean.
@@ -142,15 +140,16 @@ typedef union YYSTYPE
 			char Str[2048];
 		} data;
 	} constant;
-	struct _NODE{
-		element *ep;
-		nodeP next;
-	} node;
+	node nodes;
+	struct _TYPEL{
+		int type;
+		struct _TYPEL *next;
+	} typeL;
 
 
 
 /* Line 2068 of yacc.c  */
-#line 154 "Yacc.tab.h"
+#line 153 "Yacc.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

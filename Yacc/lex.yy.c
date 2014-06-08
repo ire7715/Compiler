@@ -691,12 +691,14 @@ char *yytext;
 
 long int lineNo = 0;
 char outputBuff[OUT_SIZE], strBuff[MAX_STR_SIZE];	// outputBuff stores token tags in current line.
+extern int tokenPrint;
 
 void printTokenOrd(char *text){
 	fprintf(stdout, "<%s>\r\n", text);
 }
 
 void printToken(char *text, char *tokenType){
+	if(tokenPrint)
 		fprintf(stdout, "<\033[38;5;46m%s\033[0;0m: \033[38;5;204m%s\033[0;0m> @ line %ld\r\n", tokenType, text, lineNo);
 }
 
@@ -712,7 +714,7 @@ void newLine(){	// Gives a new line
 
 
 
-#line 716 "lex.yy.c"
+#line 718 "lex.yy.c"
 
 #define INITIAL 0
 #define COMMENTS 1
@@ -904,11 +906,11 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 42 "Lex.l"
+#line 44 "Lex.l"
 
 
 	/* delimiter begin */ 
-#line 912 "lex.yy.c"
+#line 914 "lex.yy.c"
 
 	if ( !(yy_init) )
 		{
@@ -994,57 +996,57 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 45 "Lex.l"
+#line 47 "Lex.l"
 { printToken(yytext, "delimiter"); return DEL_COMMA;}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 46 "Lex.l"
+#line 48 "Lex.l"
 { printToken(yytext, "delimiter"); return DEL_COLON;}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 47 "Lex.l"
+#line 49 "Lex.l"
 { printToken(yytext, "delimiter"); return DEL_DUAL_COLON;}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 48 "Lex.l"
+#line 50 "Lex.l"
 { printToken(yytext, "delimiter"); return DEL_SEMICOLON;}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 49 "Lex.l"
+#line 51 "Lex.l"
 { printToken(yytext, "delimiter"); return DEL_L_PARENTHESIS;}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 50 "Lex.l"
+#line 52 "Lex.l"
 { printToken(yytext, "delimiter"); return DEL_R_PARENTHESIS;}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 51 "Lex.l"
+#line 53 "Lex.l"
 { printToken(yytext, "delimiter"); return DEL_L_SQUARE_BRACKET;}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 52 "Lex.l"
+#line 54 "Lex.l"
 { printToken(yytext, "delimiter"); return DEL_R_SQUARE_BRACKET;}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 53 "Lex.l"
+#line 55 "Lex.l"
 { printToken(yytext, "delimiter"); return DEL_L_BRACKET;}
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 54 "Lex.l"
+#line 56 "Lex.l"
 { printToken(yytext, "delimiter"); return DEL_R_BRACKET;}
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 55 "Lex.l"
+#line 57 "Lex.l"
 { printToken(yytext, "delimiter"); return DEL_COMPONENT_REF;}
 	YY_BREAK
 /* delemiter end */
@@ -1052,291 +1054,291 @@ YY_RULE_SETUP
 /*	Arithmatic */
 case 12:
 YY_RULE_SETUP
-#line 60 "Lex.l"
+#line 62 "Lex.l"
 { printToken(yytext, "operator"); return OP_ADD;}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 61 "Lex.l"
+#line 63 "Lex.l"
 { printToken(yytext, "operator"); return OP_SUB;}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 62 "Lex.l"
+#line 64 "Lex.l"
 { printToken(yytext, "operator"); return OP_MULTIPLY;}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 63 "Lex.l"
+#line 65 "Lex.l"
 { printToken(yytext, "operator"); return OP_DIVIDE;}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 64 "Lex.l"
+#line 66 "Lex.l"
 { printToken(yytext, "operator"); return OP_EXPONENT;}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 65 "Lex.l"
+#line 67 "Lex.l"
 { printToken(yytext, "operator"); return OP_CONCAT;}
 	YY_BREAK
 /*	Relation */
 case 18:
 YY_RULE_SETUP
-#line 68 "Lex.l"
+#line 70 "Lex.l"
 { printToken(yytext, "operator"); return OP_LT;}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 69 "Lex.l"
+#line 71 "Lex.l"
 { printToken(yytext, "operator"); return OP_LE;}
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 70 "Lex.l"
+#line 72 "Lex.l"
 { printToken(yytext, "operator"); return OP_GT;}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 71 "Lex.l"
+#line 73 "Lex.l"
 { printToken(yytext, "operator"); return OP_GE;}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 72 "Lex.l"
+#line 74 "Lex.l"
 { printToken(yytext, "operator"); return OP_EQ;}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 73 "Lex.l"
+#line 75 "Lex.l"
 { printToken(yytext, "operator"); return OP_NE;}
 	YY_BREAK
 /*	Logic */
 case 24:
 YY_RULE_SETUP
-#line 76 "Lex.l"
+#line 78 "Lex.l"
 { printToken(yytext, "operator"); return OP_AND;}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 77 "Lex.l"
+#line 79 "Lex.l"
 { printToken(yytext, "operator"); return OP_OR;}
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 78 "Lex.l"
+#line 80 "Lex.l"
 { printToken(yytext, "operator"); return OP_NOT;}
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 79 "Lex.l"
+#line 81 "Lex.l"
 { printToken(yytext, "operator"); return OP_EQV;}
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 80 "Lex.l"
+#line 82 "Lex.l"
 { printToken(yytext, "operator"); return OP_NEQV;}
 	YY_BREAK
 /*	Assign */
 case 29:
 YY_RULE_SETUP
-#line 83 "Lex.l"
+#line 85 "Lex.l"
 { printToken(yytext, "operator"); return OP_ASSIGN;}
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 84 "Lex.l"
+#line 86 "Lex.l"
 { printToken(yytext, "operator"); return OP_POINTER_ASSIGN;};
 	YY_BREAK
 /* operators end */
 /* keywords begin */
 case 31:
 YY_RULE_SETUP
-#line 88 "Lex.l"
+#line 90 "Lex.l"
 { printToken(yytext, "keyword"); return KW_CALL;}
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 89 "Lex.l"
+#line 91 "Lex.l"
 { printToken(yytext, "keyword"); return KW_CASE;}
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 90 "Lex.l"
+#line 92 "Lex.l"
 { printToken(yytext, "keyword"); return KW_CHAR;}
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 91 "Lex.l"
+#line 93 "Lex.l"
 { printToken(yytext, "keyword"); return KW_CLOSE;}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 92 "Lex.l"
+#line 94 "Lex.l"
 { printToken(yytext, "keyword"); return KW_COMMON;}
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 93 "Lex.l"
+#line 95 "Lex.l"
 { printToken(yytext, "keyword"); return KW_CONT;}
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 94 "Lex.l"
+#line 96 "Lex.l"
 { printToken(yytext, "keyword"); return KW_CYCLE;}
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 95 "Lex.l"
+#line 97 "Lex.l"
 { printToken(yytext, "keyword"); return KW_DATA;}
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 96 "Lex.l"
+#line 98 "Lex.l"
 { printToken(yytext, "keyword"); return KW_DIM;}
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 97 "Lex.l"
+#line 99 "Lex.l"
 { printToken(yytext, "keyword"); return KW_DO;}
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 98 "Lex.l"
+#line 100 "Lex.l"
 { printToken(yytext, "keyword"); return KW_ELSE;}
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 99 "Lex.l"
+#line 101 "Lex.l"
 { printToken(yytext, "keyword"); return KW_END;}
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 100 "Lex.l"
+#line 102 "Lex.l"
 { printToken(yytext, "keyword"); return KW_EXIT;}
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 101 "Lex.l"
+#line 103 "Lex.l"
 { printToken(yytext, "keyword"); return KW_FUNC;}
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 102 "Lex.l"
+#line 104 "Lex.l"
 { printToken(yytext, "keyword"); return KW_GOTO;}
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 103 "Lex.l"
+#line 105 "Lex.l"
 { printToken(yytext, "keyword"); return KW_IF;}
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 104 "Lex.l"
+#line 106 "Lex.l"
 { printToken(yytext, "keyword"); return KW_INT;}
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 105 "Lex.l"
+#line 107 "Lex.l"
 { printToken(yytext, "keyword"); return KW_INTERFACE;}
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 106 "Lex.l"
+#line 108 "Lex.l"
 { printToken(yytext, "keyword"); return KW_LOGIC;}
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 107 "Lex.l"
+#line 109 "Lex.l"
 { printToken(yytext, "keyword"); return KW_PROCEDURE;}
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 108 "Lex.l"
+#line 110 "Lex.l"
 { printToken(yytext, "keyword"); return KW_PARAMETER;}
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 109 "Lex.l"
+#line 111 "Lex.l"
 { printToken(yytext, "keyword"); return KW_PRINT;}
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 110 "Lex.l"
+#line 112 "Lex.l"
 { printToken(yytext, "keyword"); return KW_PRINTLN;}
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 111 "Lex.l"
+#line 113 "Lex.l"
 { printToken(yytext, "keyword"); return KW_POINTER;}
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 112 "Lex.l"
+#line 114 "Lex.l"
 { printToken(yytext, "keyword"); return KW_PROGRAM;}
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 113 "Lex.l"
+#line 115 "Lex.l"
 { printToken(yytext, "keyword"); return KW_PROGRAM;}
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 114 "Lex.l"
+#line 116 "Lex.l"
 { printToken(yytext, "keyword"); return KW_REAL;}
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 115 "Lex.l"
+#line 117 "Lex.l"
 { printToken(yytext, "keyword"); return KW_RECURSIVE;}
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 116 "Lex.l"
+#line 118 "Lex.l"
 { printToken(yytext, "keyword"); return KW_RETURN;}
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 117 "Lex.l"
+#line 119 "Lex.l"
 { printToken(yytext, "keyword"); return KW_SELECT;}
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 118 "Lex.l"
+#line 120 "Lex.l"
 { printToken(yytext, "keyword"); return KW_STOP;}
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 119 "Lex.l"
+#line 121 "Lex.l"
 { printToken(yytext, "keyword"); return KW_SUB;}
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 120 "Lex.l"
+#line 122 "Lex.l"
 { printToken(yytext, "keyword"); return KW_TYPE;}
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 121 "Lex.l"
+#line 123 "Lex.l"
 { printToken(yytext, "keyword"); return KW_THEN;}
 	YY_BREAK
 /* keywords end */
 /* booleans begin */
 case 65:
 YY_RULE_SETUP
-#line 126 "Lex.l"
+#line 128 "Lex.l"
 { printToken(yytext, "boolean"); yylval.constant.type = 4; yylval.constant.data.Zval = 1; return CONST_BOOL;}
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 127 "Lex.l"
+#line 129 "Lex.l"
 { printToken(yytext, "boolean"); yylval.constant.type = 4; yylval.constant.data.Zval = 0; return CONST_BOOL;}
 	YY_BREAK
 /* booleans end */
 /* integers begin */
 case 67:
 YY_RULE_SETUP
-#line 131 "Lex.l"
+#line 133 "Lex.l"
 {
 				printToken(yytext, "integer");
 				yylval.constant.type = 1;
@@ -1348,7 +1350,7 @@ YY_RULE_SETUP
 /* real numbers */
 case 68:
 YY_RULE_SETUP
-#line 140 "Lex.l"
+#line 142 "Lex.l"
 {
 							printToken(yytext, "real");
 							yylval.constant.type = 2;
@@ -1358,7 +1360,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 146 "Lex.l"
+#line 148 "Lex.l"
 {
 							printToken(yytext, "real");
 							yylval.constant.type = 2;
@@ -1370,7 +1372,7 @@ YY_RULE_SETUP
 /* strings begin */
 case 70:
 YY_RULE_SETUP
-#line 155 "Lex.l"
+#line 157 "Lex.l"
 { 
 		// Start string pattern
 		BEGIN(STRING);
@@ -1379,7 +1381,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 160 "Lex.l"
+#line 162 "Lex.l"
 {
 		// Met one double-quote implies string ends. Complete the string tag and back to initial state.
 		BEGIN(INITIAL);
@@ -1391,7 +1393,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 168 "Lex.l"
+#line 170 "Lex.l"
 {
 		// Met a slash and a double-quote implies a double-quote in string.
 		sprintf(strBuff, "%s%c", strBuff, (char)0x22);
@@ -1399,7 +1401,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 172 "Lex.l"
+#line 174 "Lex.l"
 {
 		// Met two double-quote implies a double-quote in string.
 		sprintf(strBuff, "%s%c", strBuff, (char)0x22);
@@ -1407,7 +1409,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 176 "Lex.l"
+#line 178 "Lex.l"
 {
 		// Met anything neither double-quote nor line break then it is a part of string. Store it.
 		sprintf(strBuff, "%s%s", strBuff, yytext);
@@ -1416,7 +1418,7 @@ YY_RULE_SETUP
 case 75:
 /* rule 75 can match eol */
 YY_RULE_SETUP
-#line 180 "Lex.l"
+#line 182 "Lex.l"
 {
 		// Met a line break in the string implies it's an un-closed string.
 		fprintf(stdout, "\033[38;5;196mun-closed String\033[0;0m @ line %ld\r\n", lineNo);
@@ -1426,7 +1428,7 @@ YY_RULE_SETUP
 	}
 	YY_BREAK
 case YY_STATE_EOF(STRING):
-#line 187 "Lex.l"
+#line 189 "Lex.l"
 {
 		// Reach the end-of-file in the string implies it's an un-closed string.
 		fprintf(stdout, "\033[38;5;196mun-closed String\033[0;0m @ line %ld\r\n", lineNo);
@@ -1441,7 +1443,7 @@ case 76:
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 196 "Lex.l"
+#line 198 "Lex.l"
 { fprintf(stdout, "\033[38;5;247m%s\033[0;0m\r\n", yytext); }
 	YY_BREAK
 case 77:
@@ -1449,12 +1451,12 @@ case 77:
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 197 "Lex.l"
+#line 199 "Lex.l"
 { fprintf(stdout, "\033[38;5;247m%s\033[0;0m\r\n", yytext); }
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 198 "Lex.l"
+#line 200 "Lex.l"
 {
 		fprintf(stdout, "\033[38;5;247m%s", yytext);
 		BEGIN(COMMENTS);
@@ -1463,19 +1465,19 @@ YY_RULE_SETUP
 case 79:
 /* rule 79 can match eol */
 YY_RULE_SETUP
-#line 202 "Lex.l"
+#line 204 "Lex.l"
 { newLine(); fprintf(stdout, "\033[38;5;247m"); return C_LF;}
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-#line 203 "Lex.l"
+#line 205 "Lex.l"
 {
 		fprintf(stdout, "%s\033[0;0m", yytext);
 		BEGIN(INITIAL);
 	}
 	YY_BREAK
 case YY_STATE_EOF(COMMENTS):
-#line 207 "Lex.l"
+#line 209 "Lex.l"
 {
 		fprintf(stdout, "\r\n\t%s\033[38;5;196mun-closed Comment\033[0;0m @ line %ld\r\n", outputBuff, lineNo);
 		BEGIN(INITIAL); 
@@ -1486,36 +1488,36 @@ case YY_STATE_EOF(COMMENTS):
 /* identifiers begin */
 case 81:
 YY_RULE_SETUP
-#line 215 "Lex.l"
+#line 217 "Lex.l"
 { 
 		printToken(yytext, "identifier");
-		if((yylval.node.ep = lookup(current, yytext)) == NULL)
-			yylval.node.ep = insert(current, yytext);
+		if((yylval.nodes.ep = lookup(current, yytext)) == NULL)
+			yylval.nodes.ep = insert(current, yytext);
 		return IDENTIFIER;
 	}
 	YY_BREAK
 /* identifiers end */
 case 82:
 YY_RULE_SETUP
-#line 223 "Lex.l"
+#line 225 "Lex.l"
 { /*fprintf(stdout, "%s", yytext);*/ }
 	YY_BREAK
 case 83:
 /* rule 83 can match eol */
 YY_RULE_SETUP
-#line 224 "Lex.l"
+#line 226 "Lex.l"
 { printToken("C_LF", "LineBreak"); newLine(); return C_LF;}
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
-#line 225 "Lex.l"
+#line 227 "Lex.l"
 { return C_EOF;}
 	YY_BREAK
 case 84:
 YY_RULE_SETUP
-#line 226 "Lex.l"
+#line 228 "Lex.l"
 ECHO;
 	YY_BREAK
-#line 1519 "lex.yy.c"
+#line 1521 "lex.yy.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2514,7 +2516,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 226 "Lex.l"
+#line 228 "Lex.l"
 
 
 

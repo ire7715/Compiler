@@ -1,0 +1,38 @@
+<html>
+<head>
+<title>Compiler final README</title>
+<style>
+tag{
+	font-weight: bold;
+	font-size: 24px;
+	margin: 0 10px 0 5px;
+}
+line{
+	display: block;
+	margin: 5px 0px 0 35px;
+}
+line tag{
+	font-weight: bold;
+	font-size: 16px;
+	margin: 0 10px 0 5px;
+}
+</style>
+</head>
+<body>
+	<h1>A Simple Fortran Compiler</h1>
+	<hr>
+	<p><tag>1.&nbsp;my&nbsp;compiler</tag>(<a href="scanner">./scanner</a>)</p>
+	<p><tag>2.&nbsp;makefile</tag>(<a href="makefile">./makefile</a>)</p>
+	<p><tag>3.&nbsp;test program</tag>(<a href="testFiles/helloWorld.sf">./testFile/helloWorld.sf</a>)<br>
+		<line>makefile of testFile&nbsp;<a href="testFiles/makefile">./testFiles/makefile</a><br>
+		Usage: to compile a .sf file named test.sf, apply the command 'make filename=test'. That is assign the filename parameter as the filename of .sf file after removing .sf.</line>
+	</p>
+	<p><tag>4.&nbsp;modification after previous submit</tag>
+		<line><tag>I.</tag>patch string assignment and string type, which was forgot in previous work.</line>
+		<line><tag>II.</tag>fix the problem id list lost ponter sometimes, with new allocated space and memcpy.</line>
+		<line><tag>III.</tag>add new functions to append java assembly. (tab, tabShift, printsAllGlobal, initializeVars, printMethod, put, get, getConst, putLabel and getLabel)</line>
+		<line><tag>IV.</tag>each element in symbolTable got new attributes data (which contains the initial value of this variable or constant), location (which represents the index in the max_local) and isConst (which stores if it is a constant).</line>
+		<line><tag>V.</tag>add codes to print java assembly in several grammar rule.</line>
+	</p>
+</body>
+</html>
